@@ -1,0 +1,97 @@
+# BMAD DocOps Module - Nextra 4 Integration
+# Documentation automation with Next.js App Router and semantic-release
+# Includes headless API layer for future custom frontends
+
+name: bmad-docops-nextra
+version: 1.0.0
+description: |
+  Documentation Operations module for BMAD Method using Nextra 4.
+  Features:
+  - Automatic doc generation from planning artifacts
+  - Story-driven documentation updates
+  - Headless API for custom frontends
+  - Semantic-release integration for changelogs
+  - Pagefind search + AI assistant support
+
+author: BMAD Method
+license: MIT
+
+# Module dependencies
+dependencies:
+  - bmm  # BMad Method core
+
+# Technology stack
+stack:
+  framework: nextra
+  version: "4.x"
+  router: app
+  theme: nextra-theme-docs
+  search: pagefind
+  ai_search: inkeep  # Optional
+  
+# Default paths (aligned with Nextra 4 conventions)
+defaults:
+  planning_artifacts: planning_artifacts
+  implementation_artifacts: implementation_artifacts
+  content_dir: content
+  app_dir: app
+  docs_output: content
+  api_output: app/api/docs
+  changelog_path: content/changelog.mdx
+  nextra_config: next.config.mjs
+  mdx_components: mdx-components.tsx
+
+# Workflows provided by this module
+workflows:
+  - doc-init        # Initialize Nextra docs from planning artifacts
+  - doc-analyze     # Analyze completed stories for doc needs
+  - doc-sync        # Sync docs when stories complete
+
+# Menu items for Paige agent
+menu_extensions:
+  paige:
+    - code: di
+      label: Doc Init (Nextra)
+      workflow: doc-init
+      description: Initialize Nextra documentation from planning artifacts
+    - code: da
+      label: Doc Analyze
+      workflow: doc-analyze
+      description: Analyze completed stories for documentation needs
+    - code: ds
+      label: Doc Sync
+      workflow: doc-sync
+      description: Synchronize documentation with implementation
+
+# BMAD phase hooks
+hooks:
+  on_phase3_complete:
+    trigger: doc-init
+    description: Initialize docs when architecture is finalized
+  on_story_done:
+    trigger: doc-analyze
+    description: Analyze documentation needs when story completes
+  on_sprint_complete:
+    trigger: doc-sync
+    description: Sync all documentation changes
+
+# Headless API configuration
+headless_api:
+  enabled: true
+  base_path: /api/docs
+  endpoints:
+    - path: /
+      method: GET
+      description: Get page map (navigation structure)
+    - path: /[...slug]
+      method: GET
+      description: Get compiled MDX for a page
+    - path: /search
+      method: POST
+      description: Search documentation
+
+# Semantic-release integration
+semantic_release:
+  enabled: true
+  config_file: .releaserc.json
+  changelog_format: mdx

@@ -1,0 +1,33 @@
+---
+title: Backend Development
+description: Laravel backend development documentation for CurryDash
+---
+
+# Backend Development
+
+Technical documentation for the CurryDash Laravel backend.
+
+## Technology Stack
+
+- **Framework**: Laravel 9.x
+- **Database**: MySQL (Cloud SQL)
+- **Cache**: Redis (Memorystore)
+- **API**: RESTful JSON API
+
+## Quick Start
+
+```bash
+git clone https://github.com/CoralShades/CurryDash-Admin-Seller-Portal.git
+cd CurryDash-Admin-Seller-Portal/backend
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan serve
+```
+
+## Documentation Sections
+
+- [Laravel Architecture](/developers/backend/laravel)
+- [Database Schema](/developers/backend/database)
+- [API Endpoints](/developers/backend/api)

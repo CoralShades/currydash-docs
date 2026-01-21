@@ -1,0 +1,144 @@
+# Project Scoping & Phased Development
+
+## MVP Strategy & Philosophy
+
+**MVP Approach:** Platform MVP with Operational Excellence Focus
+
+CurryDash's MVP prioritizes operational capability over feature breadth. The strategy is to enable vendors to serve customers reliably while admins maintain platform quality - a "functioning marketplace" rather than a "feature-complete platform."
+
+**Philosophy Rationale:**
+- **Brownfield Advantage**: Existing StackFood codebase provides 80% of infrastructure
+- **Vendor-First Launch**: 50+ active vendors needed before customer marketing
+- **Quality Over Quantity**: Cultural authenticity positioning requires careful vendor onboarding
+- **Subscription Foundation**: Package system (CPFP) is the differentiator - must work flawlessly
+
+**MVP Success Definition:**
+"A vendor can register, create curry pack menus, receive orders, and get paid. An admin can approve vendors, monitor quality, and resolve issues. A customer can discover, order, subscribe, and receive food."
+
+## MVP Feature Boundaries
+
+**Essential User Journeys Supported (MVP):**
+
+| Journey | MVP Coverage | Deferred Features |
+|---------|--------------|-------------------|
+| Dilan (Established Vendor) | Menu mgmt, orders, basic analytics | Advanced forecasting, multi-location |
+| Amara (New Vendor) | Registration, onboarding, first order | Video assessment automation |
+| Kasun (Vendor Staff) | Order dashboard, status workflow | Kitchen display integration |
+| Sarah (Admin Operations) | Vendor review, quality monitoring | Automated alerts, predictive scoring |
+| Raj (Support Agent) | Basic ticket queue, refunds | Full case management, knowledge base |
+| David (Super Admin) | User/role mgmt, basic exports | Custom report builder, advanced audit |
+| Nisha (Accountant) | Financial reports, GST exports | Batch downloads, multi-vendor view |
+
+**Must-Have Capabilities (Phase 1):**
+
+**Vendor Portal (CAR):**
+- Self-service registration with document upload
+- Restaurant profile management (hours, zones, details)
+- Package configuration builder (curry pack setup)
+- Menu management (food items, categories, add-ons)
+- Real-time order dashboard with accept/prepare/ready workflow
+- Basic analytics (orders, revenue, ratings summary)
+- Notification system (new orders, status updates)
+
+**Admin Dashboard (CAD):**
+- Vendor application queue with approval/rejection
+- Vendor profile view and status management
+- Order monitoring with search and filters
+- Customer complaint queue (basic resolution)
+- Platform analytics dashboard (daily/weekly KPIs)
+- User and role management (RBAC)
+
+**Backend APIs (CUR):**
+- All 70 frontend PRD functional requirements
+- Authentication (JWT for mobile, session for dashboards)
+- Package and subscription endpoints
+- Payment processing (Stripe integration)
+- Push notification triggers
+
+## Phased Development Roadmap
+
+**Phase 1: MVP (Production Readiness)**
+
+| Category | Features | Priority |
+|----------|----------|----------|
+| Vendor Onboarding | Registration, documents, approval workflow | P0 |
+| Menu Management | Food CRUD, package configuration, availability | P0 |
+| Order Management | Dashboard, status workflow, notifications | P0 |
+| Admin Operations | Vendor management, order monitoring, complaints | P0 |
+| API Layer | All frontend FR support, authentication, payments | P0 |
+| Analytics | Basic metrics (orders, revenue, ratings) | P1 |
+
+**Phase 2: Growth (Post-Launch Enhancement)**
+
+| Category | Features | Priority |
+|----------|----------|----------|
+| Advanced Analytics | Trend analysis, benchmarking, forecasting | P1 |
+| Vendor Tools | Bulk operations, promotional campaigns, customer messaging | P1 |
+| Admin Efficiency | Bulk actions, automated alerts, quality audit workflows | P1 |
+| Support Tooling | Full case management, knowledge base, escalation paths | P2 |
+| Financial Features | Reconciliation, payout management, batch exports | P2 |
+
+**Phase 3: Expansion (Market Leadership)**
+
+| Category | Features | Priority |
+|----------|----------|----------|
+| Multi-Language | Sinhalese, Tamil content management | P2 |
+| Geographic Expansion | Multi-region support, additional suburbs | P2 |
+| Cultural Features | Heritage storytelling, authenticity verification | P3 |
+| Enterprise | Multi-location vendor support, white-label options | P3 |
+| AI/Automation | Demand forecasting, auto quality control, smart routing | P3 |
+
+## Resource Requirements
+
+**MVP Team Composition:**
+
+| Role | Count | Responsibilities |
+|------|-------|-----------------|
+| Tech Lead / Senior Laravel Dev | 1 | Architecture decisions, code review, complex features |
+| Backend Developer | 1-2 | Feature implementation, API development, testing |
+| Frontend Developer | 0.5 | Blade template updates, admin UI improvements |
+| QA Engineer | 0.5 | Manual testing, regression, UAT coordination |
+| Product Manager | 0.5 | Requirements clarification, stakeholder alignment |
+| DevOps | 0.25 | Deployment, monitoring, infrastructure |
+
+**Skills Required:**
+- Laravel 9.x expertise (Eloquent, Passport, Blade)
+- PHP 8.1+ proficiency
+- MySQL optimization and query tuning
+- REST API design and documentation
+- Payment gateway integration (Stripe)
+- Git workflow and code review practices
+
+## Risk Mitigation Strategy
+
+**Technical Risks:**
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| No test coverage (0%) | High | Implement critical path tests first; cover order and payment flows |
+| Monolithic CentralLogics | Medium | Incremental service extraction; don't refactor during MVP |
+| No queue system | Medium | Accept synchronous operations for MVP; add queues for Phase 2 |
+| Performance at scale | Medium | Add caching for hot paths (restaurant lists, menu data) |
+
+**Market Risks:**
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Vendor adoption slow | High | Focus on 10-15 pilot vendors for soft launch; white-glove onboarding |
+| Competition from majors | Medium | Emphasize cultural niche; avoid head-to-head feature competition |
+| Subscription model confusion | Medium | Clear UI differentiation between one-time and subscription orders |
+
+**Resource Risks:**
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Key developer unavailable | High | Document architecture decisions; maintain comprehensive docs |
+| Scope creep | High | Strict MVP boundary enforcement; defer "nice-to-haves" aggressively |
+| Timeline pressure | Medium | Prioritize vendor-facing features; admin polish can follow |
+
+**Contingency Plan (Reduced Resources):**
+If resources are limited, prioritize:
+1. Vendor order management (must transact)
+2. Admin vendor approval (must onboard)
+3. Basic analytics (must measure)
+4. Advanced features (defer entirely)

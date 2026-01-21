@@ -1,0 +1,60 @@
+# Cloud Build configuration for Node.js
+# Replace PROJECT_ID and SERVICE_NAME with your values
+
+substitutions:
+  _SERVICE_NAME: nodejs-api  # Change this
+  _REGION: australia-southeast1
+  _ARTIFACT_REPO: docker-repo
+
+steps:
+  # Step 1: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/${_SERVICE_NAME}:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/${_SERVICE_NAME}:latest'
+      - '.'
+    id: 'build-image'
+
+  # Step 2: Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/${_SERVICE_NAME}'
+    id: 'push-image'
+    waitFor: ['build-image']
+
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/${_SERVICE_NAME}:${SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--cpu=1'
+      - '--memory=512Mi'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--port=8080'
+      - '--concurrency=80'
+      - '--set-env-vars=NODE_ENV=production'
+      # Add secrets from Secret Manager:
+      # - '--set-secrets=DATABASE_URL=database-url:latest'
+    id: 'deploy-cloud-run'
+    waitFor: ['push-image']
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/${_SERVICE_NAME}:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REPO}/${_SERVICE_NAME}:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'

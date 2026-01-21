@@ -1,0 +1,106 @@
+---
+title: CurryDash Platform Documentation
+description: Complete documentation for the Sri Lankan food delivery platform
+---
+
+import { Cards, Callout } from 'nextra/components'
+
+# CurryDash Platform Documentation
+
+Welcome to the complete documentation for **CurryDash** - the premium Sri Lankan food delivery platform serving Victoria, Australia.
+
+<Callout type="info">
+  **Multi-repository platform:** CurryDash consists of separate backend and mobile repositories. This documentation hub covers the entire platform.
+</Callout>
+
+## Documentation by Audience
+
+<Cards>
+  <Cards.Card title="Developer Docs" href="/developers">
+    Laravel backend, Flutter apps, API integration, deployment guides
+  </Cards.Card>
+  <Cards.Card title="Vendor Guide" href="/vendors">
+    Seller Portal, menu management, orders, payments
+  </Cards.Card>
+  <Cards.Card title="Admin Guide" href="/admins">
+    Platform administration, user management, analytics
+  </Cards.Card>
+  <Cards.Card title="API Reference" href="/api">
+    Complete REST API documentation
+  </Cards.Card>
+</Cards>
+
+## Platform Repositories
+
+CurryDash is organized across multiple repositories:
+
+| Repository | Purpose | Technologies |
+|------------|---------|--------------|
+| [CurryDash-Admin-Seller-Portal](https://github.com/CoralShades/CurryDash-Admin-Seller-Portal) | Backend API & Admin Portal | Laravel 9.x, MySQL, Redis |
+| [CurryDash-UserApp-Mobile_Web-Flutter](https://github.com/CoralShades/CurryDash-UserApp-Mobile_Web-Flutter) | Customer Mobile & Web Apps | Flutter, Dart |
+| [currydash-docs](https://github.com/CoralShades/currydash-docs) | Platform Documentation | Nextra 4, Next.js |
+
+## Quick Start by Role
+
+### For Backend Developers
+
+```bash
+git clone https://github.com/CoralShades/CurryDash-Admin-Seller-Portal.git
+cd CurryDash-Admin-Seller-Portal/backend
+composer install && php artisan migrate
+```
+
+[Backend Setup Guide](/developers/backend)
+
+### For Frontend Developers
+
+```bash
+git clone https://github.com/CoralShades/CurryDash-UserApp-Mobile_Web-Flutter.git
+cd CurryDash-UserApp-Mobile_Web-Flutter
+flutter pub get && flutter run
+```
+
+[Flutter Setup Guide](/developers/frontend)
+
+### For Vendors
+
+Access the Seller Portal at **https://seller.currydash.com**
+
+[Vendor Onboarding Guide](/vendors/getting-started)
+
+### For Admins
+
+Access the Admin Portal at **https://admin.currydash.com**
+
+[Admin Guide](/admins/getting-started)
+
+## Platform Architecture
+
+```
++----------------------------------------------------------+
+|  Flutter Mobile/Web Apps                                  |
+|  Repository: CurryDash-UserApp-Mobile_Web-Flutter         |
++-----------------------------+----------------------------+
+                              | REST API
++-----------------------------v----------------------------+
+|  Laravel Backend API + Admin Portal                      |
+|  Repository: CurryDash-Admin-Seller-Portal               |
++----------------------------------------------------------+
+|  Cloud SQL (MySQL) | Memorystore (Redis)                 |
+|  Google Cloud Platform                                   |
++----------------------------------------------------------+
+```
+
+## Brand Colors
+
+- **Turmeric Gold** `#E6B04B` - Primary
+- **Chili Red** `#C5351F` - Accent
+- **Curry Leaf Green** `#4A7C59` - Success
+
+## Documentation Updates
+
+This documentation is automatically synchronized with both code repositories:
+- Commits to `CurryDash-Admin-Seller-Portal` update Backend/Admin/Vendor docs
+- Commits to `CurryDash-UserApp-Mobile_Web-Flutter` update Frontend docs
+
+Using BMAD Method with semantic-release for versioning.

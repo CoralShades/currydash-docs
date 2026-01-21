@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+docs/node_modules/
+
+# Next.js
+docs/.next/
+docs/out/
+
+# Environment
+.env
+.env.local
+
+# Misc
+.DS_Store
+*.log
+
+# IDE
+.idea/
+.vscode/
+
+# BMAD
+.doc-changes/*.yaml
+!.doc-changes/.gitkeep

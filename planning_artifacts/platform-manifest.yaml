@@ -1,0 +1,48 @@
+# CurryDash Platform Manifest
+# Links documentation to source code repositories
+
+platform:
+  name: CurryDash
+  version: "1.0.0"
+  description: "Sri Lankan food delivery platform for Victoria, Australia"
+
+repositories:
+  backend:
+    name: CurryDash-Admin-Seller-Portal
+    url: https://github.com/CoralShades/CurryDash-Admin-Seller-Portal
+    type: backend
+    language: PHP
+    framework: Laravel 9.x
+    documentation_sections:
+      - developers/backend
+      - api
+      - admins
+      - vendors/seller-portal
+
+  frontend:
+    name: CurryDash-UserApp-Mobile_Web-Flutter
+    url: https://github.com/CoralShades/CurryDash-UserApp-Mobile_Web-Flutter
+    type: frontend
+    language: Dart
+    framework: Flutter 3.x
+    documentation_sections:
+      - developers/frontend
+      - api/integration-examples
+
+cross_repo_integration:
+  enabled: true
+  trigger_method: repository_dispatch
+  sync_workflow: .github/workflows/sync-from-repos.yml
+
+documentation_workflow:
+  on_story_complete:
+    - Source repo triggers docs repo
+    - Create change spec in .doc-changes/
+    - Update .doc-manifest.yaml
+    - Create GitHub issue for tracking
+    - Developer runs *paige ds to apply changes
+
+  versioning:
+    strategy: semantic-release
+    changelog: content/changelog.mdx
+    trigger: conventional commits

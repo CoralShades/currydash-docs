@@ -1,0 +1,128 @@
+name: Sync Documentation from Code Repositories
+
+on:
+  repository_dispatch:
+    types: [docs-update]
+  workflow_dispatch:
+
+jobs:
+  sync-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout docs repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log event payload
+        run: |
+          echo "Event from: ${{ github.event.client_payload.source_repo }}"
+          echo "Story ID: ${{ github.event.client_payload.story_id }}"
+          echo "Sections: ${{ github.event.client_payload.sections }}"
+          echo "Commit: ${{ github.event.client_payload.commit_sha }}"
+          echo "Message: ${{ github.event.client_payload.commit_message }}"
+
+      - name: Create documentation change spec
+        run: |
+          STORY_ID="${{ github.event.client_payload.story_id }}"
+          SOURCE_REPO="${{ github.event.client_payload.source_repo }}"
+          SECTIONS="${{ github.event.client_payload.sections }}"
+
+          mkdir -p .doc-changes
+
+          cat > .doc-changes/${STORY_ID}.yaml << EOL
+          metadata:
+            story_id: "${STORY_ID}"
+            source_repo: "${SOURCE_REPO}"
+            analyzed_at: "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            commit_sha: "${{ github.event.client_payload.commit_sha }}"
+            commit_message: "${{ github.event.client_payload.commit_message }}"
+
+          changes:
+            - id: "change-1"
+              type: update
+              priority: medium
+              sections: "${SECTIONS}"
+              auto_generated: true
+
+          changelog_entry:
+            type: feature
+            scope: "${SOURCE_REPO}"
+            description: "Documentation updates from ${STORY_ID}"
+          EOL
+
+          echo "Created change spec for ${STORY_ID}"
+          cat .doc-changes/${STORY_ID}.yaml
+
+      - name: Update manifest
+        run: |
+          STORY_ID="${{ github.event.client_payload.story_id }}"
+
+          if [ ! -f ".doc-manifest.yaml" ]; then
+            echo "story_docs:" > .doc-manifest.yaml
+          fi
+
+          cat >> .doc-manifest.yaml << EOL
+            ${STORY_ID}:
+              status: pending
+              source_repo: "${{ github.event.client_payload.source_repo }}"
+              created_at: "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          EOL
+
+          echo "Updated manifest"
+
+      - name: Commit changes
+        run: |
+          git config user.name "CurryDash Bot"
+          git config user.email "bot@currydash.com"
+
+          git add .doc-changes/ .doc-manifest.yaml
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: add pending changes for ${{ github.event.client_payload.story_id }}
+
+            Source: ${{ github.event.client_payload.source_repo }}
+            Sections: ${{ github.event.client_payload.sections }}
+
+            [skip ci]"
+
+            git push
+
+            echo "Changes committed and pushed"
+          fi
+
+      - name: Create tracking issue
+        if: github.event.client_payload.story_id != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const storyId = '${{ github.event.client_payload.story_id }}';
+            const sourceRepo = '${{ github.event.client_payload.source_repo }}';
+            const sections = '${{ github.event.client_payload.sections }}';
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Documentation update needed: ${storyId}`,
+              body: `
+              ## Documentation Update Required
+
+              **Story:** ${storyId}
+              **Source Repository:** ${sourceRepo}
+              **Affected Sections:** ${sections}
+              **Commit:** ${{ github.event.client_payload.commit_sha }}
+
+              ### Next Steps
+
+              Run \`*paige ds\` to apply pending documentation changes.
+
+              ### Commit Message
+
+              \`\`\`
+              ${{ github.event.client_payload.commit_message }}
+              \`\`\`
+              `,
+              labels: ['documentation', 'auto-generated']
+            });

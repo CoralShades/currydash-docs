@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- CurryDash Documentation Favicon -->
+  <!-- Turmeric Gold themed curry bowl with steam -->
+
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="#E6B04B"/>
+
+  <!-- Bowl shape -->
+  <path d="M6 14 C6 14 6 22 16 24 C26 22 26 14 26 14 L6 14 Z" fill="#5D4037"/>
+
+  <!-- Bowl rim -->
+  <ellipse cx="16" cy="14" rx="10" ry="3" fill="#8D6E63"/>
+
+  <!-- Curry content -->
+  <ellipse cx="16" cy="14" rx="8" ry="2" fill="#C5351F"/>
+
+  <!-- Steam lines -->
+  <path d="M12 8 Q10 6 12 4" stroke="#FFF8DC" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M16 7 Q14 5 16 3" stroke="#FFF8DC" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  <path d="M20 8 Q18 6 20 4" stroke="#FFF8DC" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+</svg>

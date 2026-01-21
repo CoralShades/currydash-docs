@@ -1,0 +1,90 @@
+---
+title: API Reference
+description: CurryDash REST API documentation
+---
+
+import { Cards, Callout } from 'nextra/components'
+
+# API Reference
+
+Complete REST API documentation for CurryDash platform integration.
+
+<Callout type="info">
+  API documentation is auto-generated from Laravel routes using L5-Swagger.
+</Callout>
+
+## API Sections
+
+<Cards>
+  <Cards.Card title="Backend API" href="/api/backend">
+    Laravel REST API endpoints for admin, vendor, and customer operations
+  </Cards.Card>
+  <Cards.Card title="Mobile/Web API" href="/api/frontend">
+    API integration guides for Flutter applications
+  </Cards.Card>
+</Cards>
+
+## Authentication
+
+All API endpoints require authentication using Bearer tokens:
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  https://api.currydash.com/v1/endpoint
+```
+
+## Base URLs
+
+| Environment | URL |
+|-------------|-----|
+| Production | `https://api.currydash.com/v1` |
+| Staging | `https://api-staging.currydash.com/v1` |
+| Development | `http://localhost:8000/api/v1` |
+
+## Rate Limits
+
+| User Type | Requests/minute |
+|-----------|-----------------|
+| Customer | 60 |
+| Vendor | 120 |
+| Admin | 300 |
+
+## Error Responses
+
+All errors follow this format:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable description"
+  }
+}
+```
+
+## Common Error Codes
+
+| Code | Description |
+|------|-------------|
+| `AUTH_REQUIRED` | Authentication token missing or invalid |
+| `FORBIDDEN` | User lacks permission for this action |
+| `NOT_FOUND` | Resource not found |
+| `VALIDATION_ERROR` | Request validation failed |
+| `RATE_LIMITED` | Too many requests |
+
+## API Versioning
+
+The API uses URL versioning (`/v1/`, `/v2/`). Breaking changes are released in new versions.
+
+## Documentation API
+
+This documentation is also available via a headless API:
+
+```bash
+# Get navigation structure
+curl /api/docs
+
+# Get page content
+curl /api/docs/api/backend
+```

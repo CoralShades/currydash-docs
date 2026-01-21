@@ -1,0 +1,41 @@
+{
+  "name": "docs",
+  "version": "0.0.0-development",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
+    "start": "next start",
+    "lint": "next lint",
+    "docs:dev": "next dev --turbopack",
+    "docs:build": "next build && npm run postbuild",
+    "docs:export": "next build && next export",
+    "semantic-release": "semantic-release"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "nextra": "^4.0.0",
+    "nextra-theme-docs": "^4.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.4.0",
+    "@commitlint/config-conventional": "^18.4.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.2.0",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "autoprefixer": "^10.4.16",
+    "fast-glob": "^3.3.2",
+    "gray-matter": "^4.0.3",
+    "husky": "^8.0.3",
+    "pagefind": "^1.0.0",
+    "postcss": "^8.4.32",
+    "semantic-release": "^22.0.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0"
+  }
+}

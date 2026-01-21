@@ -1,0 +1,150 @@
+# BMM Workflow Status - CurryDash Documentation
+# Generated: 2026-01-21
+# Track: BMad Method (Brownfield)
+
+generated: "2026-01-21"
+project: "currydash-docs"
+project_type: "documentation-platform"
+field_type: "brownfield"
+
+user_description: |
+  CurryDash multi-repository documentation platform for food delivery service.
+
+  Tech Stack:
+  - Next.js 16.1.4 + Nextra 4.0.0 + Tailwind CSS v4
+  - Integrates with currydash-admin-vendor-portal (Laravel) and currydash-mobile (Flutter)
+  - Cross-repository automation via GitHub Actions
+  - Semantic Release for versioning
+  - BMAD Method workflows for documentation generation (*paige di, da, ds)
+
+  Current Development State:
+  - Active development with specific issues to resolve
+  - Sidebar not visible (CSS/layout issue)
+  - TOC "On This Page" missing
+  - 380+ lines enterprise CSS applied
+  - Tailwind v4 upgrade complete
+
+  Goals:
+  - Enterprise-grade docs matching svelteflow.dev
+  - Multi-audience: Developers, Vendors, Admins
+  - Cards with borders, shadows, hover effects
+  - Code blocks with package manager tabs
+
+selected_track: "method"
+workflow_path: "method-brownfield.yaml"
+
+# User selections from workflow-init
+brainstorm_requested: true
+research_requested: true
+product_brief_requested: false
+
+# Workflow Status
+# STATUS VALUES:
+#   - required: Must be completed
+#   - optional: Can skip
+#   - conditional: Required if condition met
+#   - completed: Done (with file path or date)
+#   - skipped: Explicitly skipped
+#   - in_progress: Currently working on
+
+workflow_status:
+  # Phase 0: Documentation (Brownfield Prerequisite)
+  - phase: 0
+    name: "Documentation"
+    workflows:
+      - id: "document-project"
+        name: "Document Project"
+        status: "completed"
+        completed_date: "2026-01-21"
+        output: "docs/index.md, docs/architecture.md, docs/source-tree-analysis.md"
+        agent: "analyst"
+        command: "/bmad:bmm:workflows:document-project"
+
+  # Phase 1: Analysis (Optional - User Selected)
+  - phase: 1
+    name: "Analysis"
+    workflows:
+      - id: "brainstorm"
+        name: "Brainstorm"
+        status: "_bmad-output/analysis/currydash-docs-comprehensive-analysis-2026-01-21.md"
+        completed_date: "2026-01-21"
+        agent: "analyst"
+        command: "/bmad:bmm:workflows:brainstorming"
+        purpose: "Creative exploration for enterprise-grade documentation features"
+
+      - id: "research"
+        name: "Research"
+        status: "_bmad-output/analysis/currydash-docs-comprehensive-analysis-2026-01-21.md"
+        completed_date: "2026-01-21"
+        agent: "analyst"
+        command: "/bmad:bmm:workflows:research"
+        purpose: "Technical analysis - Nextra best practices, svelteflow.dev patterns"
+
+  # Phase 2: Planning
+  - phase: 2
+    name: "Planning"
+    workflows:
+      - id: "prd"
+        name: "Product Requirements Document"
+        status: "required"
+        agent: "pm"
+        command: "/bmad:bmm:workflows:prd"
+        purpose: "Define requirements for sidebar fix, TOC, enterprise styling"
+
+      - id: "create-ux-design"
+        name: "UX Design"
+        status: "conditional"
+        condition: "if_has_ui"
+        agent: "ux-designer"
+        command: "/bmad:bmm:workflows:create-ux-design"
+        note: "Recommended - documentation platform has significant UI"
+
+  # Phase 3: Solutioning
+  - phase: 3
+    name: "Solutioning"
+    workflows:
+      - id: "create-architecture"
+        name: "Architecture"
+        status: "required"
+        agent: "architect"
+        command: "/bmad:bmm:workflows:create-architecture"
+        purpose: "Technical design for Nextra integration, component architecture"
+
+      - id: "create-epics-and-stories"
+        name: "Epics & Stories"
+        status: "required"
+        agent: "pm"
+        command: "/bmad:bmm:workflows:create-epics-and-stories"
+        purpose: "Break down work into implementable stories"
+
+      - id: "test-design"
+        name: "Test Design"
+        status: "optional"
+        agent: "tea"
+        command: "/bmad:bmm:workflows:testarch-test-design"
+        note: "System-level testability review"
+
+      - id: "implementation-readiness"
+        name: "Implementation Readiness Check"
+        status: "required"
+        agent: "architect"
+        command: "/bmad:bmm:workflows:check-implementation-readiness"
+        purpose: "Validate all artifacts before implementation"
+
+  # Phase 4: Implementation
+  - phase: 4
+    name: "Implementation"
+    workflows:
+      - id: "sprint-planning"
+        name: "Sprint Planning"
+        status: "required"
+        agent: "sm"
+        command: "/bmad:bmm:workflows:sprint-planning"
+        note: "Creates sprint plan - subsequent work tracked in sprint-status.yaml"
+
+# Next Action
+next_workflow:
+  id: "prd"
+  name: "Product Requirements Document"
+  agent: "pm"
+  command: "/bmad:bmm:workflows:prd"

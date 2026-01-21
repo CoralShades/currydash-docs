@@ -1,0 +1,50 @@
+# CurryDash Documentation Manifest
+# Tracks documentation state for BMAD Method integration
+
+version: "1.0.0"
+last_updated: "2026-01-21"
+
+# Documentation tracking
+story_docs: {}
+
+# Pending documentation changes from code repositories
+pending_changes: []
+
+# Source repositories
+source_repositories:
+  backend:
+    name: CurryDash-Admin-Seller-Portal
+    url: https://github.com/CoralShades/CurryDash-Admin-Seller-Portal
+    sections:
+      - developers/backend
+      - api/backend
+      - admins
+      - vendors
+
+  frontend:
+    name: CurryDash-UserApp-Mobile_Web-Flutter
+    url: https://github.com/CoralShades/CurryDash-UserApp-Mobile_Web-Flutter
+    sections:
+      - developers/frontend
+      - api/frontend
+
+# BMAD workflow triggers
+workflows:
+  doc_init: "*paige di"
+  doc_analyze: "*paige da"
+  doc_sync: "*paige ds"
+
+# Documentation sections
+sections:
+  developers:
+    title: Developer Documentation
+    audiences: [developers]
+  vendors:
+    title: Vendor Guide
+    audiences: [vendors, sellers]
+  admins:
+    title: Admin Guide
+    audiences: [admins, operators]
+  api:
+    title: API Reference
+    audiences: [developers]

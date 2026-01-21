@@ -1,0 +1,12 @@
+# CurryDash Documentation - robots.txt
+# https://docs.currydash.com
+
+User-agent: *
+Allow: /
+
+# Disallow build artifacts
+Disallow: /_next/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://docs.currydash.com/sitemap.xml

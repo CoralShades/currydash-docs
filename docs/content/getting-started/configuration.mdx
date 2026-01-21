@@ -1,0 +1,76 @@
+---
+title: Configuration
+description: Configure the product for your needs
+---
+
+import { FileTree, Callout, Tabs } from 'nextra/components'
+
+# Configuration
+
+## Configuration File
+
+Create a configuration file in your project root:
+
+<FileTree>
+  <FileTree.Folder name="my-project" defaultOpen>
+    <FileTree.File name="config.json" />
+    <FileTree.File name="package.json" />
+    <FileTree.Folder name="src">
+      <FileTree.File name="index.ts" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Options
+
+### Basic Options
+
+```json
+{
+  "name": "my-project",
+  "version": "1.0.0"
+}
+```
+
+### Advanced Options
+
+<Tabs items={['JSON', 'YAML', 'JavaScript']}>
+  <Tabs.Tab>
+    ```json
+    {
+      "advanced": {
+        "option1": true,
+        "option2": "value"
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```yaml
+    advanced:
+      option1: true
+      option2: value
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```javascript
+    module.exports = {
+      advanced: {
+        option1: true,
+        option2: 'value'
+      }
+    }
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `API_URL` | API endpoint | `http://localhost:3000` |
+| `DEBUG` | Enable debug mode | `false` |
+
+<Callout type="warning">
+  Never commit sensitive environment variables to version control.
+</Callout>

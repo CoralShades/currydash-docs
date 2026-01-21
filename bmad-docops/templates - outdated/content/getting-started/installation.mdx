@@ -1,0 +1,53 @@
+---
+title: Installation
+description: How to install the product
+---
+
+import { Tabs, Tab, Steps, Callout } from 'nextra/components'
+
+# Installation
+
+## Prerequisites
+
+- Node.js 18+
+- npm, yarn, or pnpm
+
+## Install
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab>
+    ```bash
+    npm install your-package
+    ```
+  </Tab>
+  <Tab>
+    ```bash
+    yarn add your-package
+    ```
+  </Tab>
+  <Tab>
+    ```bash
+    pnpm add your-package
+    ```
+  </Tab>
+</Tabs>
+
+## Verify
+
+<Steps>
+### Check version
+
+```bash
+your-cli --version
+```
+
+### Run health check
+
+```bash
+your-cli doctor
+```
+</Steps>
+
+<Callout type="info">
+  Having issues? Check our [Troubleshooting Guide](/guides/troubleshooting).
+</Callout>

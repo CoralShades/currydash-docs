@@ -1,0 +1,1194 @@
+# API Specification (Server Perspective)
+
+**Project**: CurryDash Laravel Backend
+**Repository**: Admin-Seller_Portal
+**API Version**: v1.0
+**Base URL**: `https://currydash.au/api/v1/`
+**Last Updated**: 2025-12-10
+
+---
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Authentication](#authentication)
+3. [API Endpoints by Category](#api-endpoints-by-category)
+4. [Request/Response Standards](#requestresponse-standards)
+5. [Validation Rules](#validation-rules)
+6. [Error Handling](#error-handling)
+7. [Rate Limiting](#rate-limiting)
+8. [Package System Endpoints](#package-system-endpoints-cpfp)
+
+---
+
+## Overview
+
+This document provides the **server-side API specification** for the CurryDash backend. It complements the client-side API reference and focuses on:
+
+- **Server implementation details**: Controllers, validation, business logic
+- **Request DTOs**: Expected request body structures and validation rules
+- **Response DTOs**: Standardized response formats
+- **Error handling**: HTTP status codes and error response formats
+- **Authentication**: JWT token validation and middleware
+
+### Related Documentation
+
+📚 **Cross-Project References**:
+- **Client API Reference**: [User-Web-Mobile/docs/api-reference.md](https://github.com/CoralShades/User-Web-Mobile/blob/main/docs/api-reference.md) - 100+ endpoints from mobile/web perspective
+- **Architecture**: [architecture.md](architecture.md) - Laravel structure and patterns
+- **Database Schema**: [database-schema.md](database-schema.md) - Data models and relationships
+- **Business Logic**: [business-logic.md](business-logic.md) - Validation rules and workflows
+
+---
+
+## Authentication
+
+### JWT Token-Based Authentication
+
+All protected API endpoints require a valid JWT access token.
+
+**Header Format**:
+```
+Authorization: Bearer {access_token}
+```
+
+**Authentication Guards**:
+- `auth:api` - Customer authentication (mobile/web apps)
+- `auth:admin` - Admin authentication
+- `auth:vendor` - Vendor authentication
+- `dm.api` - Delivery man authentication
+
+**Token Lifecycle**:
+- **Access Token**: Expires after 24 hours
+- **Refresh Token**: Expires after 30 days
+- Use `/api/v1/auth/refresh` to obtain new access token
+
+### Authentication Endpoints
+
+#### POST `/api/v1/auth/sign-up`
+
+**Purpose**: Register new customer account
+
+**Controller**: `App\Http\Controllers\Api\V1\Auth\CustomerAuthController@register`
+
+**Request Body**:
+```json
+{
+  "f_name": "John",
+  "l_name": "Doe",
+  "email": "john.doe@example.com",
+  "phone": "+61412345678",
+  "password": "SecurePass123",
+  "ref_code": "REFER123" // Optional referral code
+}
+```
+
+**Validation Rules**:
+```php
+[
+    'f_name' => 'required|string|max:100',
+    'l_name' => 'required|string|max:100',
+    'email' => 'required|email|unique:users,email|max:100',
+    'phone' => 'required|unique:users,phone|regex:/^\+[0-9]{10,15}$/',
+    'password' => 'required|min:8',
+    'ref_code' => 'nullable|exists:users,ref_code',
+]
+```
+
+**Success Response** (201 Created):
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+  "refresh_token": "def502001b7c...",
+  "user": {
+    "id": 123,
+    "f_name": "John",
+    "l_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+61412345678",
+    "image": null,
+    "created_at": "2025-12-10T10:30:00Z"
+  }
+}
+```
+
+**Error Response** (403 Forbidden):
+```json
+{
+  "errors": [
+    {
+      "code": "email",
+      "message": "The email has already been taken."
+    }
+  ]
+}
+```
+
+#### POST `/api/v1/auth/login`
+
+**Purpose**: Authenticate customer and issue JWT tokens
+
+**Controller**: `App\Http\Controllers\Api\V1\Auth\CustomerAuthController@login`
+
+**Request Body**:
+```json
+{
+  "email_or_phone": "john.doe@example.com",
+  "password": "SecurePass123"
+}
+```
+
+**Validation Rules**:
+```php
+[
+    'email_or_phone' => 'required|string',
+    'password' => 'required|string|min:8',
+]
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+  "refresh_token": "def502001b7c...",
+  "user": {
+    "id": 123,
+    "f_name": "John",
+    "l_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+61412345678",
+    "image": "https://currydash.au/storage/profile/user_123.jpg",
+    "wallet_balance": 25.50,
+    "loyalty_point": 150
+  }
+}
+```
+
+**Error Response** (401 Unauthorized):
+```json
+{
+  "errors": [
+    {
+      "code": "auth-001",
+      "message": "Invalid credentials"
+    }
+  ]
+}
+```
+
+#### POST `/api/v1/auth/forgot-password`
+
+**Purpose**: Request password reset token
+
+**Controller**: `App\Http\Controllers\Api\V1\Auth\PasswordResetController@resetPasswordRequest`
+
+**Request Body**:
+```json
+{
+  "phone_or_email": "john.doe@example.com"
+}
+```
+
+**Validation Rules**:
+```php
+[
+    'phone_or_email' => 'required|string',
+]
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "message": "Password reset OTP sent successfully",
+  "otp": "123456" // Only in development environment
+}
+```
+
+#### PUT `/api/v1/auth/reset-password`
+
+**Purpose**: Reset password with OTP token
+
+**Controller**: `App\Http\Controllers\Api\V1\Auth\PasswordResetController@resetPasswordSubmit`
+
+**Request Body**:
+```json
+{
+  "phone_or_email": "john.doe@example.com",
+  "otp": "123456",
+  "password": "NewSecurePass456",
+  "confirm_password": "NewSecurePass456"
+}
+```
+
+**Validation Rules**:
+```php
+[
+    'phone_or_email' => 'required|string',
+    'otp' => 'required|string|size:6',
+    'password' => 'required|string|min:8|confirmed',
+]
+```
+
+---
+
+## API Endpoints by Category
+
+### Zone Management
+
+#### GET `/api/v1/zone/list`
+
+**Purpose**: Retrieve all service zones
+
+**Controller**: `App\Http\Controllers\Api\V1\ZoneController@get_zones`
+
+**Authentication**: Not required (public)
+
+**Query Parameters**: None
+
+**Success Response** (200 OK):
+```json
+[
+  {
+    "id": 1,
+    "name": "Melbourne CBD",
+    "coordinates": [
+      {"lat": -37.8136, "lng": 144.9631},
+      {"lat": -37.8186, "lng": 144.9681}
+    ],
+    "status": true
+  },
+  {
+    "id": 2,
+    "name": "Richmond",
+    "coordinates": [...],
+    "status": true
+  }
+]
+```
+
+#### GET `/api/v1/zone/check`
+
+**Purpose**: Check if address is within serviceable zone
+
+**Controller**: `App\Http\Controllers\Api\V1\ZoneController@zonesCheck`
+
+**Authentication**: Not required (public)
+
+**Query Parameters**:
+- `lat` (required): Latitude
+- `lng` (required): Longitude
+
+**Example**: `/api/v1/zone/check?lat=-37.8136&lng=144.9631`
+
+**Success Response** (200 OK):
+```json
+{
+  "zone_id": 1,
+  "zone_name": "Melbourne CBD",
+  "serviceable": true
+}
+```
+
+**Error Response** (404 Not Found):
+```json
+{
+  "errors": [
+    {
+      "code": "zone-001",
+      "message": "Service not available in this area"
+    }
+  ]
+}
+```
+
+---
+
+### Restaurant Endpoints
+
+#### GET `/api/v1/restaurants/latest`
+
+**Purpose**: Get recently added restaurants
+
+**Controller**: `App\Http\Controllers\Api\V1\RestaurantController@get_latest_restaurants`
+
+**Authentication**: Not required (public)
+
+**Query Parameters**:
+- `zone_id` (required): Zone ID
+- `limit` (optional): Results limit (default: 10)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Example**: `/api/v1/restaurants/latest?zone_id=1&limit=10&offset=0`
+
+**Success Response** (200 OK):
+```json
+{
+  "total_size": 45,
+  "limit": 10,
+  "offset": 0,
+  "restaurants": [
+    {
+      "id": 15,
+      "name": "Lankan Spice House",
+      "logo": "https://currydash.au/storage/restaurant/logo_15.jpg",
+      "cuisine": ["Sri Lankan", "Indian"],
+      "rating": 4.7,
+      "delivery_time": "30-40 min",
+      "minimum_order": 25.00,
+      "free_delivery": false,
+      "distance": 2.3,
+      "open": true
+    }
+  ]
+}
+```
+
+#### GET `/api/v1/restaurants/details/{restaurant_id}`
+
+**Purpose**: Get restaurant full details including menu
+
+**Controller**: `App\Http\Controllers\Api\V1\RestaurantController@get_details`
+
+**Authentication**: Not required (public)
+
+**Success Response** (200 OK):
+```json
+{
+  "id": 15,
+  "name": "Lankan Spice House",
+  "phone": "+61398765432",
+  "email": "contact@lankanspicehouse.com.au",
+  "logo": "https://currydash.au/storage/restaurant/logo_15.jpg",
+  "cover_photo": "https://currydash.au/storage/restaurant/cover_15.jpg",
+  "address": "123 Church St, Richmond VIC 3121",
+  "latitude": -37.8236,
+  "longitude": 145.0012,
+  "rating": 4.7,
+  "rating_count": 342,
+  "cuisine": ["Sri Lankan", "Indian"],
+  "delivery_time": "30-40 min",
+  "minimum_order": 25.00,
+  "free_delivery": false,
+  "tax": 10.0,
+  "open": true,
+  "opening_hours": {
+    "Monday": "11:00 AM - 10:00 PM",
+    "Tuesday": "11:00 AM - 10:00 PM",
+    "Wednesday": "11:00 AM - 10:00 PM",
+    "Thursday": "11:00 AM - 10:00 PM",
+    "Friday": "11:00 AM - 11:00 PM",
+    "Saturday": "12:00 PM - 11:00 PM",
+    "Sunday": "12:00 PM - 10:00 PM"
+  },
+  "categories": [
+    {
+      "id": 3,
+      "name": "Curry Packs",
+      "items_count": 12
+    },
+    {
+      "id": 5,
+      "name": "Individual Curries",
+      "items_count": 18
+    }
+  ]
+}
+```
+
+---
+
+## Package System Endpoints (CPFP)
+
+The Package & Combos system is CurryDash's core differentiator. See [Architecture - Package System](architecture.md#package-system-architecture-cpfp) for data model details.
+
+### GET `/api/v1/packages/restaurant/{restaurant_id}`
+
+**Purpose**: List all packages for a restaurant
+
+**Controller**: `App\Http\Controllers\Api\V1\PackageController@index`
+
+**Authentication**: Not required (public)
+
+**Success Response** (200 OK):
+```json
+[
+  {
+    "id": 1,
+    "restaurant_id": 15,
+    "name": "Family Curry Pack",
+    "description": "Perfect for 4 people. Choose your favorites!",
+    "image": "https://currydash.au/storage/packages/pack_1.jpg",
+    "images": [
+      "https://currydash.au/storage/packages/pack_1_1.jpg",
+      "https://currydash.au/storage/packages/pack_1_2.jpg"
+    ],
+    "base_price": 45.00,
+    "status": true,
+    "rating": 4.8,
+    "rating_count": 67
+  },
+  {
+    "id": 2,
+    "restaurant_id": 15,
+    "name": "Lunch Combo",
+    "description": "Quick lunch with rice and curry",
+    "image": "https://currydash.au/storage/packages/pack_2.jpg",
+    "base_price": 15.00,
+    "status": true,
+    "rating": 4.6,
+    "rating_count": 124
+  }
+]
+```
+
+### GET `/api/v1/packages/{package_id}`
+
+**Purpose**: Get package details with configuration options
+
+**Controller**: `App\Http\Controllers\Api\V1\PackageController@show`
+
+**Authentication**: Not required (public)
+
+**Success Response** (200 OK):
+```json
+{
+  "id": 1,
+  "restaurant_id": 15,
+  "restaurant_name": "Lankan Spice House",
+  "name": "Family Curry Pack",
+  "description": "Perfect for 4 people. Includes rice, pappadum, and your choice of curries.",
+  "image": "https://currydash.au/storage/packages/pack_1.jpg",
+  "images": [
+    "https://currydash.au/storage/packages/pack_1_1.jpg",
+    "https://currydash.au/storage/packages/pack_1_2.jpg"
+  ],
+  "base_price": 45.00,
+  "status": true,
+  "rating": 4.8,
+  "rating_count": 67,
+  "configurations": [
+    {
+      "id": 1,
+      "package_id": 1,
+      "group_title": "Choose your protein (Select 2-3)",
+      "min_choices": 2,
+      "max_choices": 3,
+      "sort_order": 1,
+      "options": [
+        {
+          "id": 1,
+          "package_configuration_id": 1,
+          "food_id": 10,
+          "food": {
+            "id": 10,
+            "name": "Chicken Curry",
+            "description": "Tender chicken in Sri Lankan spices",
+            "image": "https://currydash.au/storage/food/chicken_curry.jpg",
+            "price": 14.00 // Base price (for reference only, not used in package)
+          },
+          "additional_charge": 0.00,
+          "sort_order": 1
+        },
+        {
+          "id": 2,
+          "package_configuration_id": 1,
+          "food_id": 11,
+          "food": {
+            "id": 11,
+            "name": "Lamb Curry",
+            "description": "Slow-cooked lamb in aromatic spices",
+            "image": "https://currydash.au/storage/food/lamb_curry.jpg",
+            "price": 18.00
+          },
+          "additional_charge": 5.00,
+          "sort_order": 2
+        },
+        {
+          "id": 3,
+          "package_configuration_id": 1,
+          "food_id": 12,
+          "food": {
+            "id": 12,
+            "name": "Seafood Curry",
+            "description": "Mixed seafood in coconut curry",
+            "image": "https://currydash.au/storage/food/seafood_curry.jpg",
+            "price": 22.00
+          },
+          "additional_charge": 7.00,
+          "sort_order": 3
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "package_id": 1,
+      "group_title": "Select spice level (Choose 1)",
+      "min_choices": 1,
+      "max_choices": 1,
+      "sort_order": 2,
+      "options": [
+        {
+          "id": 4,
+          "package_configuration_id": 2,
+          "food_id": 20,
+          "food": {
+            "id": 20,
+            "name": "Mild",
+            "description": "Perfect for kids",
+            "image": null,
+            "price": 0.00
+          },
+          "additional_charge": 0.00,
+          "sort_order": 1
+        },
+        {
+          "id": 5,
+          "package_configuration_id": 2,
+          "food_id": 21,
+          "food": {
+            "id": 21,
+            "name": "Medium",
+            "description": "Authentic Sri Lankan spice",
+            "image": null,
+            "price": 0.00
+          },
+          "additional_charge": 0.00,
+          "sort_order": 2
+        },
+        {
+          "id": 6,
+          "package_configuration_id": 2,
+          "food_id": 22,
+          "food": {
+            "id": 22,
+            "name": "Hot",
+            "description": "Extra spicy!",
+            "image": null,
+            "price": 0.00
+          },
+          "additional_charge": 0.00,
+          "sort_order": 3
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Business Logic**:
+- Customer must select within min/max choices for each configuration
+- Total price = base_price + sum(selected_option.additional_charge)
+- Example: Base $45 + Chicken $0 + Lamb $5 + Medium $0 = **$50.00**
+
+### POST `/api/v1/cart/package`
+
+**Purpose**: Add customized package to cart
+
+**Controller**: `App\Http\Controllers\Api\V1\CartController@add_package`
+
+**Authentication**: Required (`auth:api`)
+
+**Request Body**:
+```json
+{
+  "package_id": 1,
+  "quantity": 1,
+  "selected_options": [
+    {"option_id": 1},  // Chicken Curry (+$0)
+    {"option_id": 2},  // Lamb Curry (+$5)
+    {"option_id": 5}   // Medium spice (+$0)
+  ]
+}
+```
+
+**Validation Rules**:
+```php
+[
+    'package_id' => 'required|exists:packages,id',
+    'quantity' => 'required|integer|min:1|max:10',
+    'selected_options' => 'required|array|min:1',
+    'selected_options.*.option_id' => 'required|exists:package_options,id',
+]
+```
+
+**Server-Side Validation Logic**:
+```php
+// 1. Validate package exists and is active
+$package = Package::active()->findOrFail($request->package_id);
+
+// 2. Load all configurations with options
+$configurations = $package->configurations()->with('options')->get();
+
+// 3. Group selected options by configuration
+$selectedByConfig = [];
+foreach ($request->selected_options as $selection) {
+    $option = PackageOption::findOrFail($selection['option_id']);
+    $configId = $option->package_configuration_id;
+    $selectedByConfig[$configId][] = $option;
+}
+
+// 4. Validate min/max choices for each configuration
+foreach ($configurations as $config) {
+    $selectedCount = count($selectedByConfig[$config->id] ?? []);
+
+    if ($selectedCount < $config->min_choices) {
+        return response()->json([
+            'errors' => [
+                [
+                    'code' => 'package-001',
+                    'message' => "Please select at least {$config->min_choices} options for '{$config->group_title}'"
+                ]
+            ]
+        ], 422);
+    }
+
+    if ($selectedCount > $config->max_choices) {
+        return response()->json([
+            'errors' => [
+                [
+                    'code' => 'package-002',
+                    'message' => "You can select maximum {$config->max_choices} options for '{$config->group_title}'"
+                ]
+            ]
+        ], 422);
+    }
+}
+
+// 5. Calculate total price
+$totalPrice = $package->base_price;
+foreach ($request->selected_options as $selection) {
+    $option = PackageOption::find($selection['option_id']);
+    $totalPrice += $option->additional_charge;
+}
+
+// 6. Add to cart
+$cart = Cart::create([
+    'user_id' => auth('api')->id(),
+    'package_id' => $package->id,
+    'quantity' => $request->quantity,
+    'selected_options' => json_encode($request->selected_options),
+    'item_price' => $totalPrice,
+    'total_price' => $totalPrice * $request->quantity,
+]);
+```
+
+**Success Response** (201 Created):
+```json
+{
+  "message": "Package added to cart successfully",
+  "cart_item": {
+    "id": 456,
+    "package_id": 1,
+    "package_name": "Family Curry Pack",
+    "quantity": 1,
+    "item_price": 50.00,
+    "total_price": 50.00,
+    "selected_options": [
+      {
+        "option_id": 1,
+        "food_name": "Chicken Curry",
+        "additional_charge": 0.00
+      },
+      {
+        "option_id": 2,
+        "food_name": "Lamb Curry",
+        "additional_charge": 5.00
+      },
+      {
+        "option_id": 5,
+        "food_name": "Medium",
+        "additional_charge": 0.00
+      }
+    ]
+  },
+  "cart_summary": {
+    "items_count": 3,
+    "subtotal": 125.50,
+    "delivery_charge": 5.00,
+    "tax": 13.05,
+    "total": 143.55
+  }
+}
+```
+
+**Error Response** (422 Unprocessable Entity):
+```json
+{
+  "errors": [
+    {
+      "code": "package-001",
+      "message": "Please select at least 2 options for 'Choose your protein (Select 2-3)'"
+    }
+  ]
+}
+```
+
+---
+
+## Order Endpoints
+
+### POST `/api/v1/orders`
+
+**Purpose**: Place a new order
+
+**Controller**: `App\Http\Controllers\Api\V1\OrderController@place_order`
+
+**Authentication**: Required (`auth:api`)
+
+**Request Body**:
+```json
+{
+  "payment_method": "stripe",
+  "order_amount": 143.55,
+  "order_type": "delivery",
+  "delivery_address_id": 12,
+  "distance": 2.3,
+  "schedule_at": null,
+  "order_note": "Please ring the doorbell",
+  "coupon_discount_amount": 10.00,
+  "coupon_code": "WELCOME10"
+}
+```
+
+**Validation Rules**:
+```php
+[
+    'payment_method' => 'required|in:cash_on_delivery,stripe,paypal,wallet',
+    'order_amount' => 'required|numeric|min:0',
+    'order_type' => 'required|in:delivery,takeaway',
+    'delivery_address_id' => 'required_if:order_type,delivery|exists:addresses,id',
+    'distance' => 'nullable|numeric',
+    'schedule_at' => 'nullable|date|after:now',
+    'order_note' => 'nullable|string|max:500',
+    'coupon_discount_amount' => 'nullable|numeric|min:0',
+    'coupon_code' => 'nullable|exists:coupons,code',
+]
+```
+
+**Business Logic** (See [business-logic.md](business-logic.md)):
+1. Validate cart is not empty
+2. Validate delivery address is within restaurant zone
+3. Validate minimum order amount
+4. Apply coupon discount (if valid)
+5. Calculate delivery charge based on distance
+6. Process payment (Stripe/PayPal/Wallet)
+7. Create order record
+8. Clear cart
+9. Trigger notifications (customer, vendor)
+
+**Success Response** (201 Created):
+```json
+{
+  "order_id": 789,
+  "order_status": "pending",
+  "payment_status": "paid",
+  "total_amount": 143.55,
+  "estimated_delivery_time": "30-40 min",
+  "message": "Order placed successfully"
+}
+```
+
+### GET `/api/v1/orders/track`
+
+**Purpose**: Track order status in real-time
+
+**Controller**: `App\Http\Controllers\Api\V1\OrderController@track`
+
+**Authentication**: Required (`auth:api`)
+
+**Query Parameters**:
+- `order_id` (required): Order ID
+
+**Example**: `/api/v1/orders/track?order_id=789`
+
+**Success Response** (200 OK):
+```json
+{
+  "order_id": 789,
+  "order_status": "confirmed",
+  "payment_status": "paid",
+  "restaurant": {
+    "id": 15,
+    "name": "Lankan Spice House",
+    "phone": "+61398765432",
+    "address": "123 Church St, Richmond VIC 3121",
+    "latitude": -37.8236,
+    "longitude": 145.0012
+  },
+  "delivery_man": {
+    "id": 45,
+    "name": "Ravi Kumar",
+    "phone": "+61412345678",
+    "latitude": -37.8250,
+    "longitude": 145.0020,
+    "image": "https://currydash.au/storage/delivery/dm_45.jpg"
+  },
+  "delivery_address": {
+    "contact_person_name": "John Doe",
+    "contact_person_number": "+61423456789",
+    "address": "45 Bridge Rd, Richmond VIC 3121",
+    "latitude": -37.8260,
+    "longitude": 145.0030
+  },
+  "order_amount": 143.55,
+  "estimated_delivery_time": "2025-12-10T11:30:00Z",
+  "order_note": "Please ring the doorbell",
+  "created_at": "2025-12-10T10:45:00Z"
+}
+```
+
+---
+
+## Subscription Endpoints
+
+### POST `/api/v1/subscriptions`
+
+**Purpose**: Create recurring subscription
+
+**Controller**: `App\Http\Controllers\Api\V1\SubscriptionController@create`
+
+**Authentication**: Required (`auth:api`)
+
+**Request Body**:
+```json
+{
+  "package_id": 1,
+  "quantity": 1,
+  "selected_options": [...],  // Same as cart/package
+  "frequency": "weekly",
+  "delivery_day": "monday",
+  "delivery_time": "18:00",
+  "delivery_address_id": 12,
+  "start_date": "2025-12-16",
+  "payment_method": "stripe"
+}
+```
+
+**Validation Rules**:
+```php
+[
+    'package_id' => 'required|exists:packages,id',
+    'quantity' => 'required|integer|min:1|max:5',
+    'selected_options' => 'required|array',
+    'frequency' => 'required|in:weekly,biweekly,monthly',
+    'delivery_day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+    'delivery_time' => 'required|date_format:H:i',
+    'delivery_address_id' => 'required|exists:addresses,id',
+    'start_date' => 'required|date|after:today',
+    'payment_method' => 'required|in:stripe,paypal',
+]
+```
+
+**Success Response** (201 Created):
+```json
+{
+  "subscription_id": 234,
+  "status": "active",
+  "next_delivery_date": "2025-12-16",
+  "message": "Subscription created successfully"
+}
+```
+
+### PUT `/api/v1/subscriptions/{id}/pause`
+
+**Purpose**: Pause subscription temporarily
+
+**Controller**: `App\Http\Controllers\Api\V1\SubscriptionController@pause`
+
+**Authentication**: Required (`auth:api`)
+
+**Request Body**:
+```json
+{
+  "pause_until": "2026-01-06"
+}
+```
+
+**Success Response** (200 OK):
+```json
+{
+  "message": "Subscription paused successfully",
+  "subscription": {
+    "id": 234,
+    "status": "paused",
+    "pause_until": "2026-01-06",
+    "next_delivery_date": "2026-01-13"
+  }
+}
+```
+
+---
+
+## Request/Response Standards
+
+### Standard Request Headers
+
+All API requests should include:
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+Accept: application/json
+Accept-Language: en  // or 'si' for Sinhala
+X-Zone-Id: 1  // Current zone ID for location-based features
+```
+
+### Standard Response Format
+
+#### Success Response Structure
+
+```json
+{
+  "data": {},  // Response data
+  "message": "Operation successful",  // Optional success message
+  "meta": {  // Optional metadata for paginated responses
+    "total": 100,
+    "per_page": 20,
+    "current_page": 1,
+    "last_page": 5
+  }
+}
+```
+
+#### Error Response Structure
+
+```json
+{
+  "errors": [
+    {
+      "code": "validation-001",
+      "message": "The email field is required.",
+      "field": "email"  // Optional field identifier
+    }
+  ]
+}
+```
+
+### HTTP Status Codes
+
+| Status Code | Meaning | Usage |
+|-------------|---------|-------|
+| **200** | OK | Successful GET, PUT, DELETE |
+| **201** | Created | Successful POST (resource created) |
+| **400** | Bad Request | Malformed request |
+| **401** | Unauthorized | Missing or invalid auth token |
+| **403** | Forbidden | Insufficient permissions |
+| **404** | Not Found | Resource doesn't exist |
+| **422** | Unprocessable Entity | Validation failed |
+| **429** | Too Many Requests | Rate limit exceeded |
+| **500** | Internal Server Error | Server error |
+| **503** | Service Unavailable | Maintenance mode |
+
+---
+
+## Validation Rules
+
+### Common Validation Rules
+
+**Email**:
+```php
+'email' => 'required|email|max:100|unique:users,email'
+```
+
+**Phone** (Australian format):
+```php
+'phone' => 'required|regex:/^\+61[0-9]{9}$/|unique:users,phone'
+```
+
+**Password**:
+```php
+'password' => 'required|string|min:8|regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/'
+// At least 8 chars, 1 uppercase, 1 lowercase, 1 digit
+```
+
+**Image Upload**:
+```php
+'image' => 'required|image|mimes:jpg,jpeg,png|max:2048'  // 2MB max
+```
+
+**Date (Future)**:
+```php
+'delivery_date' => 'required|date|after:today'
+```
+
+**Decimal Price**:
+```php
+'price' => 'required|numeric|min:0|max:9999.99'
+```
+
+**Array with Min Items**:
+```php
+'selected_options' => 'required|array|min:1',
+'selected_options.*.option_id' => 'required|exists:package_options,id'
+```
+
+### Custom Validation Rules
+
+**Package Configuration Validation** (See `app/Rules/PackageConfigurationRule.php`):
+```php
+class PackageConfigurationRule implements Rule
+{
+    public function passes($attribute, $value)
+    {
+        // Validate min_choices <= max_choices
+        // Validate at least 1 option per configuration
+        // Validate all option food_ids exist
+    }
+}
+```
+
+---
+
+## Error Handling
+
+### Error Codes
+
+| Error Code | Description | HTTP Status |
+|------------|-------------|-------------|
+| **auth-001** | Invalid credentials | 401 |
+| **auth-002** | Token expired | 401 |
+| **auth-003** | Insufficient permissions | 403 |
+| **validation-001** | Required field missing | 422 |
+| **validation-002** | Invalid format | 422 |
+| **package-001** | Min choices not met | 422 |
+| **package-002** | Max choices exceeded | 422 |
+| **order-001** | Cart empty | 400 |
+| **order-002** | Minimum order not met | 400 |
+| **order-003** | Restaurant closed | 400 |
+| **payment-001** | Payment failed | 402 |
+| **zone-001** | Service unavailable | 404 |
+
+### Error Handler
+
+**Global Error Handler** (`app/Exceptions/Handler.php`):
+```php
+public function render($request, Throwable $exception)
+{
+    // JWT token exceptions
+    if ($exception instanceof \Tymon\JWTAuth\Exceptions\TokenExpiredException) {
+        return response()->json([
+            'errors' => [
+                ['code' => 'auth-002', 'message' => 'Token has expired']
+            ]
+        ], 401);
+    }
+
+    // Validation exceptions
+    if ($exception instanceof \Illuminate\Validation\ValidationException) {
+        return response()->json([
+            'errors' => Helpers::error_processor($exception->validator)
+        ], 422);
+    }
+
+    // Model not found exceptions
+    if ($exception instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+        return response()->json([
+            'errors' => [
+                ['code' => 'not-found', 'message' => 'Resource not found']
+            ]
+        ], 404);
+    }
+
+    return parent::render($request, $exception);
+}
+```
+
+### Error Formatter Utility
+
+**CentralLogics Helper** (`app/CentralLogics/Helpers.php`):
+```php
+public static function error_processor($validator)
+{
+    $err_keeper = [];
+    foreach ($validator->errors()->getMessages() as $index => $error) {
+        array_push($err_keeper, [
+            'code' => 'validation-001',
+            'message' => $error[0],
+            'field' => $index
+        ]);
+    }
+    return $err_keeper;
+}
+```
+
+---
+
+## Rate Limiting
+
+### Default Rate Limits
+
+**Configuration** (`config/rate-limiting.php`):
+```php
+[
+    'api' => '60,1',       // 60 requests per minute
+    'auth' => '5,1',       // 5 auth requests per minute (login/register)
+    'orders' => '10,1',    // 10 order submissions per minute
+]
+```
+
+**Middleware Application**:
+```php
+Route::middleware(['throttle:api'])->group(function () {
+    // Most API endpoints
+});
+
+Route::middleware(['throttle:auth'])->group(function () {
+    Route::post('/auth/login', ...);
+    Route::post('/auth/sign-up', ...);
+});
+
+Route::middleware(['throttle:orders'])->group(function () {
+    Route::post('/orders', ...);
+});
+```
+
+### Rate Limit Headers
+
+**Response Headers**:
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1670650800
+```
+
+**Rate Limit Exceeded Response** (429):
+```json
+{
+  "errors": [
+    {
+      "code": "rate-limit-001",
+      "message": "Too many requests. Please try again in 30 seconds.",
+      "retry_after": 30
+    }
+  ]
+}
+```
+
+---
+
+## Next Steps
+
+### For Backend Developers
+
+1. **Review controller implementation**: Check `app/Http/Controllers/Api/V1/` for endpoint logic
+2. **Study validation rules**: Review `app/Http/Requests/` for form request validation
+3. **Understand business logic**: Read [business-logic.md](business-logic.md) for validation rules
+4. **Test endpoints**: Use Postman collection or PHPUnit tests
+
+### For Mobile/Web Developers
+
+1. **Client API reference**: Review [User-Web-Mobile/docs/api-reference.md](https://github.com/CoralShades/User-Web-Mobile/blob/main/docs/api-reference.md) for client perspective
+2. **Package customization**: Study Package endpoints for UI implementation
+3. **Error handling**: Implement error code handling in mobile/web apps
+4. **Testing coordination**: Review [testing.md](https://github.com/CoralShades/User-Web-Mobile/blob/main/docs/testing.md) for E2E tests
+
+### For Product Managers
+
+1. **Feature mapping**: Map API endpoints to user stories
+2. **Validation rules**: Ensure PRD requirements align with validation logic
+3. **Error messages**: Review error messages for brand tone consistency
+
+---
+
+**Version**: v1.0
+**Last Updated**: 2025-12-10
+**Maintainer**: CurryDash Backend Team

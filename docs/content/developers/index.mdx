@@ -1,0 +1,75 @@
+---
+title: Developer Documentation
+description: Technical documentation for CurryDash platform developers
+---
+
+import { Cards, Callout } from 'nextra/components'
+
+# Developer Documentation
+
+Technical documentation for building and deploying the CurryDash platform.
+
+<Callout type="info">
+  **Multi-repository setup:** Clone both repositories for full platform development.
+</Callout>
+
+## Repositories
+
+### Backend: CurryDash-Admin-Seller-Portal
+
+```bash
+git clone https://github.com/CoralShades/CurryDash-Admin-Seller-Portal.git
+cd CurryDash-Admin-Seller-Portal/backend
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan serve
+```
+
+[Backend Documentation](/developers/backend)
+
+### Frontend: CurryDash-UserApp-Mobile_Web-Flutter
+
+```bash
+git clone https://github.com/CoralShades/CurryDash-UserApp-Mobile_Web-Flutter.git
+cd CurryDash-UserApp-Mobile_Web-Flutter
+flutter pub get
+flutter run
+```
+
+[Frontend Documentation](/developers/frontend)
+
+## Development Guides
+
+<Cards>
+  <Cards.Card title="Backend (Laravel)" href="/developers/backend">
+    API development, database, authentication, architecture
+  </Cards.Card>
+  <Cards.Card title="Frontend (Flutter)" href="/developers/frontend">
+    Mobile & web apps, state management, UI components
+  </Cards.Card>
+  <Cards.Card title="Deployment" href="/developers/deployment">
+    GCP Cloud Run, Docker, CI/CD pipelines
+  </Cards.Card>
+  <Cards.Card title="Brand Guidelines" href="/developers/brand">
+    Colors, typography, design system
+  </Cards.Card>
+</Cards>
+
+## Architecture Overview
+
+The CurryDash platform follows a clean architecture pattern:
+
+- **Backend**: Laravel 9.x with modular service layer
+- **Frontend**: Flutter with BLoC state management
+- **Infrastructure**: Google Cloud Platform (Cloud Run, Cloud SQL, Memorystore)
+- **API**: RESTful JSON API with JWT authentication
+
+## Key Documentation
+
+- [System Architecture](/developers/backend/architecture)
+- [API Specification](/developers/backend/architecture/api-specification)
+- [Database Schema](/developers/backend/database)
+- [Flutter Setup](/developers/frontend/flutter)
+- [GCP Deployment](/developers/deployment/gcp)

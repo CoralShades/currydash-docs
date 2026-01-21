@@ -1,0 +1,379 @@
+/* app/globals.css */
+/* Enterprise-grade styling for CurryDash Documentation */
+/* Matching svelteflow.dev / reactflow.dev quality */
+
+@import "tailwindcss";
+
+/* ==========================================
+   CurryDash Brand Theme
+   ========================================== */
+@theme {
+  --color-turmeric-gold: #E6B04B;
+  --color-chili-red: #C5351F;
+  --color-curry-leaf-green: #4A7C59;
+  --color-coconut-cream: #FFF8DC;
+  --color-cinnamon-brown: #5D4037;
+  --color-deep-charcoal: #1A1A1A;
+}
+
+/* ==========================================
+   Nextra Theme Overrides
+   ========================================== */
+:root {
+  --nextra-primary-hue: 43deg;
+  --nextra-primary-saturation: 76%;
+  --nextra-primary-lightness: 55%;
+}
+
+/* ==========================================
+   Enterprise Card Styling
+   ========================================== */
+
+/* Enhanced Cards - matching svelteflow.dev */
+.nextra-cards {
+  @apply grid gap-4 mt-6;
+}
+
+.nextra-card {
+  @apply relative overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800;
+  @apply bg-white dark:bg-gray-900/50;
+  @apply shadow-sm hover:shadow-lg;
+  @apply transition-all duration-300 ease-out;
+  @apply hover:-translate-y-1;
+}
+
+.nextra-card:hover {
+  @apply border-amber-400/50 dark:border-amber-500/30;
+}
+
+.nextra-card h3,
+.nextra-card .nextra-card-title {
+  @apply font-semibold text-gray-900 dark:text-gray-100;
+  @apply flex items-center gap-2;
+}
+
+.nextra-card p {
+  @apply text-sm text-gray-600 dark:text-gray-400 mt-1;
+}
+
+/* Card hover arrow animation */
+.nextra-card::after {
+  content: '→';
+  @apply absolute right-4 top-1/2 -translate-y-1/2;
+  @apply text-gray-400 dark:text-gray-600;
+  @apply opacity-0 transform translate-x-2;
+  @apply transition-all duration-300;
+}
+
+.nextra-card:hover::after {
+  @apply opacity-100 translate-x-0 text-amber-500;
+}
+
+/* ==========================================
+   Sidebar Styling
+   ========================================== */
+
+/* Make sidebar visible and properly styled */
+.nextra-sidebar-container {
+  @apply border-r border-gray-200 dark:border-gray-800;
+}
+
+/* Sidebar items */
+.nextra-sidebar a {
+  @apply rounded-lg px-3 py-2 text-sm;
+  @apply transition-all duration-200;
+}
+
+.nextra-sidebar a:hover {
+  @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.nextra-sidebar a[data-active="true"] {
+  @apply bg-amber-50 dark:bg-amber-900/20;
+  @apply text-amber-700 dark:text-amber-400;
+  @apply font-medium;
+}
+
+/* Sidebar separators */
+.nextra-sidebar [data-separator] {
+  @apply text-xs font-semibold uppercase tracking-wider;
+  @apply text-gray-500 dark:text-gray-400;
+  @apply mt-6 mb-2 px-3;
+}
+
+/* Collapsible sections */
+.nextra-sidebar summary {
+  @apply cursor-pointer list-none;
+  @apply flex items-center justify-between;
+  @apply px-3 py-2 rounded-lg;
+  @apply hover:bg-gray-100 dark:hover:bg-gray-800;
+  @apply transition-colors duration-200;
+}
+
+.nextra-sidebar summary::marker {
+  display: none;
+}
+
+.nextra-sidebar details[open] summary svg {
+  @apply rotate-90;
+}
+
+/* ==========================================
+   Table of Contents (TOC)
+   ========================================== */
+
+.nextra-toc {
+  @apply text-sm;
+}
+
+.nextra-toc-title {
+  @apply font-semibold text-gray-900 dark:text-gray-100 mb-4;
+}
+
+.nextra-toc a {
+  @apply block py-1.5 text-gray-600 dark:text-gray-400;
+  @apply border-l-2 border-transparent pl-3;
+  @apply transition-all duration-200;
+  @apply hover:text-gray-900 dark:hover:text-gray-100;
+}
+
+.nextra-toc a[data-active="true"] {
+  @apply text-amber-600 dark:text-amber-400;
+  @apply border-l-amber-500;
+}
+
+/* ==========================================
+   Code Blocks
+   ========================================== */
+
+/* Code block container */
+pre {
+  @apply rounded-xl !important;
+  @apply border border-gray-200 dark:border-gray-800 !important;
+  @apply bg-gray-50 dark:bg-gray-900 !important;
+}
+
+/* Inline code */
+code:not(pre code) {
+  @apply px-1.5 py-0.5 rounded-md;
+  @apply bg-gray-100 dark:bg-gray-800;
+  @apply text-amber-700 dark:text-amber-400;
+  @apply text-sm font-medium;
+}
+
+/* Code block with filename/language */
+[data-rehype-pretty-code-figure] {
+  @apply relative;
+}
+
+[data-rehype-pretty-code-title] {
+  @apply px-4 py-2 text-xs font-medium;
+  @apply bg-gray-100 dark:bg-gray-800;
+  @apply border-b border-gray-200 dark:border-gray-700;
+  @apply rounded-t-xl;
+  @apply text-gray-600 dark:text-gray-400;
+}
+
+/* Copy button styling */
+button[data-copy-code] {
+  @apply absolute top-3 right-3;
+  @apply p-2 rounded-lg;
+  @apply bg-gray-200/50 dark:bg-gray-700/50;
+  @apply hover:bg-gray-200 dark:hover:bg-gray-700;
+  @apply transition-all duration-200;
+  @apply opacity-0 group-hover:opacity-100;
+}
+
+pre:hover button[data-copy-code] {
+  @apply opacity-100;
+}
+
+/* ==========================================
+   Tabs Component
+   ========================================== */
+
+[role="tablist"] {
+  @apply flex gap-1 p-1;
+  @apply bg-gray-100 dark:bg-gray-800;
+  @apply rounded-lg mb-4;
+  @apply border border-gray-200 dark:border-gray-700;
+}
+
+[role="tab"] {
+  @apply px-4 py-2 text-sm font-medium;
+  @apply rounded-md;
+  @apply text-gray-600 dark:text-gray-400;
+  @apply transition-all duration-200;
+}
+
+[role="tab"]:hover {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+[role="tab"][aria-selected="true"] {
+  @apply bg-white dark:bg-gray-900;
+  @apply text-amber-600 dark:text-amber-400;
+  @apply shadow-sm;
+}
+
+/* ==========================================
+   Callouts
+   ========================================== */
+
+.nextra-callout {
+  @apply rounded-xl p-4 my-6;
+  @apply border;
+  @apply flex gap-3;
+}
+
+.nextra-callout[data-type="info"] {
+  @apply bg-blue-50 dark:bg-blue-900/20;
+  @apply border-blue-200 dark:border-blue-800;
+}
+
+.nextra-callout[data-type="warning"] {
+  @apply bg-amber-50 dark:bg-amber-900/20;
+  @apply border-amber-200 dark:border-amber-800;
+}
+
+.nextra-callout[data-type="error"] {
+  @apply bg-red-50 dark:bg-red-900/20;
+  @apply border-red-200 dark:border-red-800;
+}
+
+/* ==========================================
+   Typography
+   ========================================== */
+
+h1 {
+  @apply text-4xl font-bold tracking-tight;
+  @apply bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400;
+  @apply bg-clip-text text-transparent;
+}
+
+h2 {
+  @apply text-2xl font-semibold mt-12 mb-4;
+  @apply text-gray-900 dark:text-gray-100;
+  @apply scroll-mt-24;
+}
+
+h3 {
+  @apply text-xl font-semibold mt-8 mb-3;
+  @apply text-gray-800 dark:text-gray-200;
+}
+
+/* ==========================================
+   Links
+   ========================================== */
+
+article a {
+  @apply text-amber-600 dark:text-amber-400;
+  @apply underline decoration-amber-400/30;
+  @apply hover:decoration-amber-400;
+  @apply transition-all duration-200;
+}
+
+/* External link indicator */
+a[href^="http"]:not([href*="currydash"])::after {
+  content: '↗';
+  @apply ml-0.5 text-xs;
+}
+
+/* ==========================================
+   Animations
+   ========================================== */
+
+/* Smooth page transitions */
+main {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover lift effect */
+.hover-lift {
+  @apply transition-transform duration-300;
+  @apply hover:-translate-y-1;
+}
+
+/* ==========================================
+   API Method Badges
+   ========================================== */
+
+.api-method {
+  @apply inline-flex items-center px-2.5 py-1 rounded-md;
+  @apply text-xs font-bold uppercase tracking-wider;
+  @apply border;
+}
+
+.api-method-get {
+  @apply bg-green-100 text-green-800 border-green-300;
+  @apply dark:bg-green-900/30 dark:text-green-400 dark:border-green-700;
+}
+
+.api-method-post {
+  @apply bg-blue-100 text-blue-800 border-blue-300;
+  @apply dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700;
+}
+
+.api-method-put {
+  @apply bg-yellow-100 text-yellow-800 border-yellow-300;
+  @apply dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700;
+}
+
+.api-method-delete {
+  @apply bg-red-100 text-red-800 border-red-300;
+  @apply dark:bg-red-900/30 dark:text-red-400 dark:border-red-700;
+}
+
+.api-method-patch {
+  @apply bg-purple-100 text-purple-800 border-purple-300;
+  @apply dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700;
+}
+
+/* ==========================================
+   Print Styles
+   ========================================== */
+
+@media print {
+  nav,
+  .nextra-sidebar-container,
+  .nextra-toc,
+  .nextra-banner {
+    display: none !important;
+  }
+  main {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+}
+
+/* ==========================================
+   Custom Scrollbar
+   ========================================== */
+
+::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700;
+  @apply rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-600;
+}

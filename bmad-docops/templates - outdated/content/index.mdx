@@ -1,0 +1,62 @@
+---
+title: Documentation
+description: Welcome to the documentation
+---
+
+import { Cards, Card, Callout } from 'nextra/components'
+
+# Welcome to the Documentation
+
+This documentation site is powered by **BMAD DocOps** and **Nextra 4**.
+
+<Callout type="info">
+  **New here?** Start with our [Quick Start Guide](/getting-started/quick-start).
+</Callout>
+
+## Get Started
+
+<Cards>
+  <Card
+    title="Quick Start"
+    href="/getting-started/quick-start"
+  >
+    Get up and running in 5 minutes
+  </Card>
+  <Card
+    title="Installation"
+    href="/getting-started/installation"
+  >
+    Install and configure for your environment
+  </Card>
+  <Card
+    title="Guides"
+    href="/guides"
+  >
+    Learn how to accomplish common tasks
+  </Card>
+  <Card
+    title="API Reference"
+    href="/api"
+  >
+    Complete API documentation
+  </Card>
+</Cards>
+
+## Features
+
+- 📚 **Comprehensive Documentation** - Everything you need to know
+- 🚀 **Quick Start Guides** - Get productive fast
+- 🔌 **API Reference** - Complete endpoint documentation
+- 📖 **Tutorials** - Step-by-step learning paths
+
+## Headless API
+
+This documentation is also available via a headless API:
+
+```bash
+# Get navigation structure
+curl /api/docs
+
+# Get page content
+curl /api/docs/getting-started/quick-start
+```

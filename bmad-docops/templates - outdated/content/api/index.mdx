@@ -1,0 +1,54 @@
+---
+title: API Reference
+description: Complete API documentation
+---
+
+import { Callout } from 'nextra/components'
+
+# API Reference
+
+Complete reference documentation for all API endpoints.
+
+<Callout type="info">
+  This documentation is also available via the headless API at `/api/docs`.
+</Callout>
+
+## Base URL
+
+```
+https://api.yourproduct.com/v1
+```
+
+## Authentication
+
+All API requests require authentication via Bearer token:
+
+```bash
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+  https://api.yourproduct.com/v1/endpoint
+```
+
+## Rate Limits
+
+| Plan | Requests/minute |
+|------|-----------------|
+| Free | 60 |
+| Pro | 600 |
+| Enterprise | Unlimited |
+
+## Error Responses
+
+All errors follow this format:
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable description"
+  }
+}
+```
+
+## Endpoints
+
+API endpoints are documented as they are implemented. Check back for updates.
