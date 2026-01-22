@@ -65,7 +65,7 @@ Authorization: Bearer {access_token}
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -113,6 +113,71 @@ Authorization: Bearer {access_token}
             'success' => false,
             'message' => 'Unable to connect to profile service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> getProfile() async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        final response = await http.get(
+          Uri.parse('https://api.currydash.au/api/v1/customer/info'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Accept': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final user = jsonDecode(response.body);
+
+          // Cache profile data locally (optional)
+          await storage.write(key: 'user_profile', value: jsonEncode(user));
+
+          return {
+            'success': true,
+            'user': user,
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to retrieve profile',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Get profile request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to profile service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -237,7 +302,7 @@ Update user profile information including name, email, phone, and profile image.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -319,6 +384,131 @@ Update user profile information including name, email, phone, and profile image.
             'success' => false,
             'message' => 'Unable to connect to profile service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'dart:io';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> updateProfile({
+      required String firstName,
+      required String lastName,
+      required String email,
+      String? phone,
+      String? password,
+      File? imageFile,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        final uri = Uri.parse('https://api.currydash.au/api/v1/customer/update-profile');
+        http.Response response;
+
+        if (imageFile != null) {
+          // Multipart request for image upload
+          final request = http.MultipartRequest('POST', uri)
+            ..headers['Authorization'] = 'Bearer $accessToken'
+            ..headers['Accept'] = 'application/json'
+            ..fields['f_name'] = firstName
+            ..fields['l_name'] = lastName
+            ..fields['email'] = email;
+
+          if (phone != null) request.fields['phone'] = phone;
+          if (password != null) request.fields['password'] = password;
+
+          request.files.add(await http.MultipartFile.fromPath(
+            'image',
+            imageFile.path,
+          ));
+
+          final streamedResponse = await request.send();
+          response = await http.Response.fromStream(streamedResponse);
+        } else {
+          // JSON request (no image)
+          response = await http.post(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'f_name': firstName,
+              'l_name': lastName,
+              'email': email,
+              if (phone != null) 'phone': phone,
+              if (password != null) 'password': password,
+            }),
+          );
+        }
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          // Update cached profile
+          await storage.delete(key: 'user_profile');
+          await storage.write(key: 'user', value: jsonEncode(data['user']));
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'user': data['user'],
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'errors': errors,
+          };
+        }
+
+        // Handle file too large (413)
+        if (response.statusCode == 413) {
+          return {
+            'success': false,
+            'message': 'Image file is too large (max 2MB)',
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to update profile',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Update profile request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to profile service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -420,7 +610,7 @@ Retrieve all saved delivery addresses for the authenticated user.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -469,6 +659,72 @@ Retrieve all saved delivery addresses for the authenticated user.
             'success' => false,
             'message' => 'Unable to connect to address service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> listAddresses({
+      int limit = 10,
+      int offset = 0,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        final response = await http.get(
+          Uri.parse('https://api.currydash.au/api/v1/customer/address/list?limit=$limit&offset=$offset'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Accept': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'total': data['total'],
+            'addresses': data['addresses'],
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to retrieve addresses',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('List addresses request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to address service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -599,7 +855,7 @@ Create a new delivery address for the authenticated user.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -677,6 +933,115 @@ Create a new delivery address for the authenticated user.
             'success' => false,
             'message' => 'Unable to connect to address service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> addAddress({
+      required String addressType,
+      required String contactPersonName,
+      required String contactPersonNumber,
+      required String address,
+      required String latitude,
+      required String longitude,
+      required int zoneId,
+      String? floor,
+      String? road,
+      String? house,
+      int isDefault = 0,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/customer/address/add'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'address_type': addressType,
+            'contact_person_name': contactPersonName,
+            'contact_person_number': contactPersonNumber,
+            'address': address,
+            if (floor != null) 'floor': floor,
+            if (road != null) 'road': road,
+            if (house != null) 'house': house,
+            'latitude': latitude,
+            'longitude': longitude,
+            'zone_id': zoneId,
+            'is_default': isDefault,
+          }),
+        );
+
+        if (response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'address_id': data['address_id'],
+            'address': data['address'],
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'errors': errors,
+          };
+        }
+
+        // Handle coverage area error (400)
+        if (response.statusCode == 400) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Address is outside delivery coverage area',
+            'errors': errors,
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to add address',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Add address request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to address service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -801,7 +1166,7 @@ Modify an existing delivery address.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -886,6 +1251,121 @@ Modify an existing delivery address.
             'success' => false,
             'message' => 'Unable to connect to address service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> updateAddress({
+      required int addressId,
+      required String addressType,
+      required String contactPersonName,
+      required String contactPersonNumber,
+      required String address,
+      required String latitude,
+      required String longitude,
+      required int zoneId,
+      String? floor,
+      String? road,
+      String? house,
+      int isDefault = 0,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        final response = await http.put(
+          Uri.parse('https://api.currydash.au/api/v1/customer/address/update/$addressId'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'address_type': addressType,
+            'contact_person_name': contactPersonName,
+            'contact_person_number': contactPersonNumber,
+            'address': address,
+            if (floor != null) 'floor': floor,
+            if (road != null) 'road': road,
+            if (house != null) 'house': house,
+            'latitude': latitude,
+            'longitude': longitude,
+            'zone_id': zoneId,
+            'is_default': isDefault,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'address': data['address'],
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'errors': errors,
+          };
+        }
+
+        // Handle not found (404)
+        if (response.statusCode == 404) {
+          return {
+            'success': false,
+            'message': 'Address not found',
+          };
+        }
+
+        // Handle forbidden (403)
+        if (response.statusCode == 403) {
+          return {
+            'success': false,
+            'message': 'You do not have permission to update this address',
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to update address',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Update address request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to address service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -983,7 +1463,7 @@ Remove a saved delivery address.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -1052,6 +1532,86 @@ Remove a saved delivery address.
     ```
   </Tabs.Tab>
   <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> deleteAddress({
+      required int addressId,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        final response = await http.delete(
+          Uri.parse('https://api.currydash.au/api/v1/customer/address/delete?address_id=$addressId'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Accept': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+          };
+        }
+
+        // Handle not found (404)
+        if (response.statusCode == 404) {
+          return {
+            'success': false,
+            'message': 'Address not found',
+          };
+        }
+
+        // Handle pending orders error (400)
+        if (response.statusCode == 400) {
+          return {
+            'success': false,
+            'message': 'Cannot delete address with pending orders',
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to delete address',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Delete address request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to address service',
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
     ```bash
     curl -X DELETE "https://api.currydash.au/api/v1/customer/address/delete?address_id=45" \
       -H "Authorization: Bearer {access_token}" \
@@ -1116,7 +1676,7 @@ Retrieve all saved payment methods for the authenticated user.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -1161,6 +1721,68 @@ Retrieve all saved payment methods for the authenticated user.
             'success' => false,
             'message' => 'Unable to connect to payment service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> listPaymentMethods() async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        final response = await http.get(
+          Uri.parse('https://api.currydash.au/api/v1/customer/payment-methods'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Accept': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'payment_methods': data['payment_methods'],
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to retrieve payment methods',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('List payment methods request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to payment service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -1258,7 +1880,7 @@ Add a new payment method (credit card) to the user's account.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -1328,6 +1950,96 @@ Add a new payment method (credit card) to the user's account.
             'success' => false,
             'message' => 'Unable to connect to payment service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> addPaymentMethod({
+      required String paymentMethodId,
+      int isDefault = 0,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        // Payment method ID from client-side Stripe tokenization
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/customer/payment-methods/add'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'payment_method_id': paymentMethodId,
+            'is_default': isDefault,
+          }),
+        );
+
+        if (response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'payment_method': data['payment_method'],
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Card has expired or is invalid',
+            'errors': errors,
+          };
+        }
+
+        // Handle invalid payment method (400)
+        if (response.statusCode == 400) {
+          return {
+            'success': false,
+            'message': 'Invalid payment method ID',
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to add payment method',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Add payment method request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to payment service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -1432,7 +2144,7 @@ Update payment method settings (e.g., set as default).
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -1490,6 +2202,84 @@ Update payment method settings (e.g., set as default).
             'success' => false,
             'message' => 'Unable to connect to payment service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> updatePaymentMethod({
+      required int paymentMethodId,
+      required int isDefault,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        final response = await http.put(
+          Uri.parse('https://api.currydash.au/api/v1/customer/payment-methods/update/$paymentMethodId'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'is_default': isDefault,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'payment_method': data['payment_method'],
+          };
+        }
+
+        // Handle not found (404)
+        if (response.statusCode == 404) {
+          return {
+            'success': false,
+            'message': 'Payment method not found',
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to update payment method',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Update payment method request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to payment service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -1558,7 +2348,7 @@ Remove a saved payment method.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -1621,6 +2411,86 @@ Remove a saved payment method.
             'success' => false,
             'message' => 'Unable to connect to payment service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> deletePaymentMethod({
+      required int paymentMethodId,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'No access token available',
+          };
+        }
+
+        final response = await http.delete(
+          Uri.parse('https://api.currydash.au/api/v1/customer/payment-methods/delete/$paymentMethodId'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Accept': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+          };
+        }
+
+        // Handle not found (404)
+        if (response.statusCode == 404) {
+          return {
+            'success': false,
+            'message': 'Payment method not found',
+          };
+        }
+
+        // Handle pending transactions error (400)
+        if (response.statusCode == 400) {
+          return {
+            'success': false,
+            'message': 'Cannot delete payment method with pending transactions',
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to delete payment method',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Delete payment method request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to payment service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
