@@ -149,7 +149,65 @@ Serialize package list with metadata, sorted by creation date or popularity.
 
 **Client Implementation Example**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $restaurantId = 15;
+        $response = Http::get("https://api.currydash.au/api/v1/packages/restaurant/{$restaurantId}");
+
+        if ($response->successful()) {
+            $packages = $response->json();
+
+            // Process package list
+            return response()->json([
+                'success' => true,
+                'count' => count($packages),
+                'packages' => $packages,
+            ]);
+        }
+
+        // Handle restaurant not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Restaurant not found or has no active packages',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle rate limiting (429)
+        if ($response->status() === 429) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many requests. Please try again later.',
+            ], 429);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load packages',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Package list request failed', [
+            'restaurant_id' => $restaurantId,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to package service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
   <Tabs.Tab>
     ```javascript
     // Fetch all packages for a restaurant
@@ -504,7 +562,145 @@ The **Curry Pack Family Pack (CPFP)** system works as follows:
 
 **Client Implementation Example**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $packageId = 1;
+        $response = Http::get("https://api.currydash.au/api/v1/packages/{$packageId}");
+
+        if ($response->successful()) {
+            $package = $response->json();
+
+            // Process package details
+            return response()->json([
+                'success' => true,
+                'package' => $package,
+                'base_price' => $package['base_price'],
+                'configuration_count' => count($package['configurations']),
+            ]);
+        }
+
+        // Handle package not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Package not found or unavailable',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle rate limiting (429)
+        if ($response->status() === 429) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many requests. Please try again later.',
+            ], 429);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load package details',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Package details request failed', [
+            'package_id' => $packageId,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to package service',
+        ], 500);
+    }
+
+    /**
+     * Calculate total package price based on selected options
+     */
+    function calculatePackagePrice(array $package, array $selectedOptionIds): float
+    {
+        $total = $package['base_price'];
+
+        foreach ($package['configurations'] as $config) {
+            foreach ($config['options'] as $option) {
+                if (in_array($option['id'], $selectedOptionIds)) {
+                    $total += $option['additional_charge'];
+                }
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Validate package option selections
+     */
+    function validatePackageSelections(array $package, array $selectedOptionIds): array
+    {
+        $errors = [];
+
+        foreach ($package['configurations'] as $config) {
+            // Count selections for this configuration
+            $configSelections = array_filter($selectedOptionIds, function($optionId) use ($config) {
+                return collect($config['options'])->contains('id', $optionId);
+            });
+
+            $selectionCount = count($configSelections);
+
+            // Validate min/max constraints
+            if ($selectionCount < $config['min_choices']) {
+                $errors[] = "{$config['group_title']}: Select at least {$config['min_choices']} option(s)";
+            }
+
+            if ($selectionCount > $config['max_choices']) {
+                $errors[] = "{$config['group_title']}: Select at most {$config['max_choices']} option(s)";
+            }
+        }
+
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors,
+        ];
+    }
+
+    // Usage example
+    $packageId = 1;
+    $selectedOptions = [1, 2, 5]; // Chicken, Lamb, Medium
+
+    // Fetch package details
+    $response = Http::get("https://api.currydash.au/api/v1/packages/{$packageId}");
+    $package = $response->json();
+
+    // Validate selections
+    $validation = validatePackageSelections($package, $selectedOptions);
+
+    if ($validation['valid']) {
+        // Calculate final price
+        $finalPrice = calculatePackagePrice($package, $selectedOptions);
+
+        return response()->json([
+            'success' => true,
+            'package_name' => $package['name'],
+            'base_price' => $package['base_price'],
+            'final_price' => $finalPrice,
+            'selected_options' => $selectedOptions,
+        ]);
+    } else {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid package selections',
+            'errors' => $validation['errors'],
+        ], 422);
+    }
+    ```
+  </Tabs.Tab>
   <Tabs.Tab>
     ```javascript
     // Fetch package details and calculate price dynamically
