@@ -149,7 +149,65 @@ Serialize package list with metadata, sorted by creation date or popularity.
 
 **Client Implementation Example**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $restaurantId = 15;
+        $response = Http::get("https://api.currydash.au/api/v1/packages/restaurant/{$restaurantId}");
+
+        if ($response->successful()) {
+            $packages = $response->json();
+
+            // Process package list
+            return response()->json([
+                'success' => true,
+                'count' => count($packages),
+                'packages' => $packages,
+            ]);
+        }
+
+        // Handle restaurant not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Restaurant not found or has no active packages',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle rate limiting (429)
+        if ($response->status() === 429) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many requests. Please try again later.',
+            ], 429);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load packages',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Package list request failed', [
+            'restaurant_id' => $restaurantId,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to package service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
   <Tabs.Tab>
     ```javascript
     // Fetch all packages for a restaurant
@@ -182,59 +240,62 @@ Serialize package list with metadata, sorted by creation date or popularity.
   </Tabs.Tab>
   <Tabs.Tab>
     ```dart
-    // Flutter - Fetch restaurant packages
-    import 'package:http/http.dart' as http;
     import 'dart:convert';
+    import 'package:http/http.dart' as http;
 
-    class PackageService {
-      static const String baseUrl = 'https://currydash.au/api/v1';
-
-      Future<List<Package>> fetchRestaurantPackages(int restaurantId) async {
+    Future<Map<String, dynamic>> fetchRestaurantPackages({
+      required int restaurantId,
+    }) async {
+      try {
         final response = await http.get(
-          Uri.parse('$baseUrl/packages/restaurant/$restaurantId'),
+          Uri.parse('https://api.currydash.au/api/v1/packages/restaurant/$restaurantId'),
+          headers: {
+            'Accept': 'application/json',
+          },
         );
 
         if (response.statusCode == 200) {
-          final List<dynamic> jsonList = jsonDecode(response.body);
-          return jsonList.map((json) => Package.fromJson(json)).toList();
-        } else if (response.statusCode == 404) {
-          throw Exception('Restaurant not found');
-        } else {
-          throw Exception('Failed to load packages');
+          final List<dynamic> packages = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'count': packages.length,
+            'packages': packages,
+          };
         }
-      }
-    }
 
-    // Usage in UI
-    class PackageListScreen extends StatelessWidget {
-      final int restaurantId;
-      final PackageService _service = PackageService();
+        // Handle restaurant not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Restaurant not found or has no active packages',
+            'errors': errors,
+          };
+        }
 
-      PackageListScreen({required this.restaurantId});
+        // Handle rate limiting (429)
+        if (response.statusCode == 429) {
+          return {
+            'success': false,
+            'message': 'Too many requests. Please try again later.',
+          };
+        }
 
-      @override
-      Widget build(BuildContext context) {
-        return FutureBuilder<List<Package>>(
-          future: _service.fetchRestaurantPackages(restaurantId),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to load packages',
+        };
 
-            if (!snapshot.hasData) {
-              return Center(child: CircularProgressIndicator());
-            }
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Package list request failed: restaurantId=$restaurantId - $e');
 
-            final packages = snapshot.data!;
-
-            return ListView.builder(
-              itemCount: packages.length,
-              itemBuilder: (context, index) {
-                return PackageCard(package: packages[index]);
-              },
-            );
-          },
-        );
+        return {
+          'success': false,
+          'message': 'Unable to connect to package service',
+        };
       }
     }
     ```
@@ -504,7 +565,145 @@ The **Curry Pack Family Pack (CPFP)** system works as follows:
 
 **Client Implementation Example**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $packageId = 1;
+        $response = Http::get("https://api.currydash.au/api/v1/packages/{$packageId}");
+
+        if ($response->successful()) {
+            $package = $response->json();
+
+            // Process package details
+            return response()->json([
+                'success' => true,
+                'package' => $package,
+                'base_price' => $package['base_price'],
+                'configuration_count' => count($package['configurations']),
+            ]);
+        }
+
+        // Handle package not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Package not found or unavailable',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle rate limiting (429)
+        if ($response->status() === 429) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many requests. Please try again later.',
+            ], 429);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load package details',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Package details request failed', [
+            'package_id' => $packageId,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to package service',
+        ], 500);
+    }
+
+    /**
+     * Calculate total package price based on selected options
+     */
+    function calculatePackagePrice(array $package, array $selectedOptionIds): float
+    {
+        $total = $package['base_price'];
+
+        foreach ($package['configurations'] as $config) {
+            foreach ($config['options'] as $option) {
+                if (in_array($option['id'], $selectedOptionIds)) {
+                    $total += $option['additional_charge'];
+                }
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Validate package option selections
+     */
+    function validatePackageSelections(array $package, array $selectedOptionIds): array
+    {
+        $errors = [];
+
+        foreach ($package['configurations'] as $config) {
+            // Count selections for this configuration
+            $configSelections = array_filter($selectedOptionIds, function($optionId) use ($config) {
+                return collect($config['options'])->contains('id', $optionId);
+            });
+
+            $selectionCount = count($configSelections);
+
+            // Validate min/max constraints
+            if ($selectionCount < $config['min_choices']) {
+                $errors[] = "{$config['group_title']}: Select at least {$config['min_choices']} option(s)";
+            }
+
+            if ($selectionCount > $config['max_choices']) {
+                $errors[] = "{$config['group_title']}: Select at most {$config['max_choices']} option(s)";
+            }
+        }
+
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors,
+        ];
+    }
+
+    // Usage example
+    $packageId = 1;
+    $selectedOptions = [1, 2, 5]; // Chicken, Lamb, Medium
+
+    // Fetch package details
+    $response = Http::get("https://api.currydash.au/api/v1/packages/{$packageId}");
+    $package = $response->json();
+
+    // Validate selections
+    $validation = validatePackageSelections($package, $selectedOptions);
+
+    if ($validation['valid']) {
+        // Calculate final price
+        $finalPrice = calculatePackagePrice($package, $selectedOptions);
+
+        return response()->json([
+            'success' => true,
+            'package_name' => $package['name'],
+            'base_price' => $package['base_price'],
+            'final_price' => $finalPrice,
+            'selected_options' => $selectedOptions,
+        ]);
+    } else {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid package selections',
+            'errors' => $validation['errors'],
+        ], 422);
+    }
+    ```
+  </Tabs.Tab>
   <Tabs.Tab>
     ```javascript
     // Fetch package details and calculate price dynamically
@@ -565,126 +764,154 @@ The **Curry Pack Family Pack (CPFP)** system works as follows:
   </Tabs.Tab>
   <Tabs.Tab>
     ```dart
-    // Flutter - Package details with price calculation
-    import 'package:http/http.dart' as http;
     import 'dart:convert';
+    import 'package:http/http.dart' as http;
 
-    class PackageService {
-      static const String baseUrl = 'https://currydash.au/api/v1';
-
-      Future<PackageDetail> fetchPackageDetails(int packageId) async {
+    Future<Map<String, dynamic>> fetchPackageDetails({
+      required int packageId,
+    }) async {
+      try {
         final response = await http.get(
-          Uri.parse('$baseUrl/packages/$packageId'),
+          Uri.parse('https://api.currydash.au/api/v1/packages/$packageId'),
+          headers: {
+            'Accept': 'application/json',
+          },
         );
 
         if (response.statusCode == 200) {
-          return PackageDetail.fromJson(jsonDecode(response.body));
-        } else if (response.statusCode == 404) {
-          throw Exception('Package not found');
+          final package = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'package': package,
+            'base_price': package['base_price'],
+            'configuration_count': (package['configurations'] as List).length,
+          };
+        }
+
+        // Handle package not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Package not found or unavailable',
+            'errors': errors,
+          };
+        }
+
+        // Handle rate limiting (429)
+        if (response.statusCode == 429) {
+          return {
+            'success': false,
+            'message': 'Too many requests. Please try again later.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to load package details',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Package details request failed: packageId=$packageId - $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to package service',
+        };
+      }
+    }
+
+    /// Calculate total package price based on selected options
+    double calculatePackagePrice(
+      Map<String, dynamic> package,
+      List<int> selectedOptionIds,
+    ) {
+      double total = (package['base_price'] as num).toDouble();
+
+      final configurations = package['configurations'] as List;
+      for (var config in configurations) {
+        final options = config['options'] as List;
+        for (var option in options) {
+          if (selectedOptionIds.contains(option['id'])) {
+            total += (option['additional_charge'] as num).toDouble();
+          }
+        }
+      }
+
+      return total;
+    }
+
+    /// Validate package option selections
+    Map<String, dynamic> validatePackageSelections(
+      Map<String, dynamic> package,
+      List<int> selectedOptionIds,
+    ) {
+      final List<String> errors = [];
+
+      final configurations = package['configurations'] as List;
+      for (var config in configurations) {
+        // Count selections for this configuration
+        final options = config['options'] as List;
+        final configSelections = selectedOptionIds.where((optionId) {
+          return options.any((opt) => opt['id'] == optionId);
+        }).toList();
+
+        final selectionCount = configSelections.length;
+        final minChoices = config['min_choices'] as int;
+        final maxChoices = config['max_choices'] as int;
+
+        // Validate min/max constraints
+        if (selectionCount < minChoices) {
+          errors.add(
+            '${config['group_title']}: Select at least $minChoices option(s)',
+          );
+        }
+
+        if (selectionCount > maxChoices) {
+          errors.add(
+            '${config['group_title']}: Select at most $maxChoices option(s)',
+          );
+        }
+      }
+
+      return {
+        'valid': errors.isEmpty,
+        'errors': errors,
+      };
+    }
+
+    // Usage example
+    Future<void> exampleUsage() async {
+      final packageId = 1;
+      final selectedOptions = [1, 2, 5]; // Chicken, Lamb, Medium
+
+      // Fetch package details
+      final result = await fetchPackageDetails(packageId: packageId);
+
+      if (result['success'] == true) {
+        final package = result['package'];
+
+        // Validate selections
+        final validation = validatePackageSelections(package, selectedOptions);
+
+        if (validation['valid'] == true) {
+          // Calculate final price
+          final finalPrice = calculatePackagePrice(package, selectedOptions);
+
+          debugPrint('Package: ${package['name']}');
+          debugPrint('Base Price: \$${package['base_price']}');
+          debugPrint('Final Price: \$${finalPrice.toFixed(2)}');
         } else {
-          throw Exception('Failed to load package');
+          // Handle validation errors
+          final errors = validation['errors'] as List<String>;
+          debugPrint('Invalid selections: ${errors.join(', ')}');
         }
-      }
-
-      double calculatePrice(PackageDetail package, List<int> selectedOptionIds) {
-        double total = package.basePrice;
-
-        for (var config in package.configurations) {
-          for (var option in config.options) {
-            if (selectedOptionIds.contains(option.id)) {
-              total += option.additionalCharge;
-            }
-          }
-        }
-
-        return total;
-      }
-
-      bool validateSelections(
-        PackageDetail package,
-        Map<int, List<int>> selectionsByConfigId
-      ) {
-        for (var config in package.configurations) {
-          final selections = selectionsByConfigId[config.id] ?? [];
-
-          if (selections.length < config.minChoices ||
-              selections.length > config.maxChoices) {
-            return false;
-          }
-        }
-
-        return true;
-      }
-    }
-
-    // Usage in customization screen
-    class PackageCustomizationScreen extends StatefulWidget {
-      final int packageId;
-
-      @override
-      _PackageCustomizationScreenState createState() =>
-          _PackageCustomizationScreenState();
-    }
-
-    class _PackageCustomizationScreenState
-        extends State<PackageCustomizationScreen> {
-      final PackageService _service = PackageService();
-      Map<int, List<int>> _selections = {};
-
-      @override
-      Widget build(BuildContext context) {
-        return FutureBuilder<PackageDetail>(
-          future: _service.fetchPackageDetails(widget.packageId),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return Center(child: CircularProgressIndicator());
-            }
-
-            final package = snapshot.data!;
-            final selectedOptionIds = _selections.values
-                .expand((list) => list)
-                .toList();
-            final totalPrice = _service.calculatePrice(
-              package,
-              selectedOptionIds
-            );
-
-            return Scaffold(
-              appBar: AppBar(title: Text(package.name)),
-              body: Column(
-                children: [
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: package.configurations.length,
-                      itemBuilder: (context, index) {
-                        return ConfigurationGroupCard(
-                          configuration: package.configurations[index],
-                          onSelectionChanged: (optionIds) {
-                            setState(() {
-                              _selections[package.configurations[index].id] =
-                                  optionIds;
-                            });
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  PriceFooter(
-                    basePrice: package.basePrice,
-                    totalPrice: totalPrice,
-                    onAddToCart: () {
-                      if (_service.validateSelections(package, _selections)) {
-                        // Add to cart
-                      } else {
-                        // Show validation error
-                      }
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        );
+      } else {
+        // Handle fetch error
+        debugPrint('Error: ${result['message']}');
       }
     }
     ```

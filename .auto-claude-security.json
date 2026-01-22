@@ -128,9 +128,22 @@
     "zsh"
   ],
   "stack_commands": [
+    "dotnet",
+    "ipython",
+    "jupyter",
+    "msbuild",
     "node",
+    "notebook",
     "npm",
     "npx",
+    "nuget",
+    "pdb",
+    "pip",
+    "pip3",
+    "pipx",
+    "pudb",
+    "python",
+    "python3",
     "ts-node",
     "tsc",
     "tsx"
@@ -144,8 +157,10 @@
   "custom_commands": [],
   "detected_stack": {
     "languages": [
+      "python",
       "javascript",
-      "typescript"
+      "typescript",
+      "csharp"
     ],
     "package_managers": [],
     "frameworks": [],
@@ -167,7 +182,7 @@
       "setup-docs-repository-adapted.sh"
     ]
   },
-  "project_dir": "D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\005-complete-api-reference-documentation",
-  "created_at": "2026-01-22T14:24:08.498778",
-  "project_hash": "070a890538579c0a47ace7636b95c24c"
+  "project_dir": "D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement",
+  "created_at": "2026-01-22T17:19:23.331619",
+  "project_hash": "91c162e4cf8d334304e076013260fd59"
 }

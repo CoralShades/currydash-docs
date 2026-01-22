@@ -213,57 +213,96 @@ Serialize restaurant data with all required fields and metadata.
 
 </Steps>
 
-**Client Implementation Example**:
+**Code Examples**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
-    ```javascript
-    // Fetch latest restaurants for a zone
-    const loadLatestRestaurants = async (zoneId, page = 0) => {
-      try {
-        const limit = 10;
-        const offset = page * limit;
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
 
-        const response = await fetch(
-          `https://currydash.au/api/v1/restaurants/latest?zone_id=${zoneId}&limit=${limit}&offset=${offset}`
-        );
+    try {
+        $zoneId = 1;
+        $limit = 10;
+        $offset = 0;
 
-        const data = await response.json();
+        $response = Http::get('https://currydash.au/api/v1/restaurants/latest', [
+            'zone_id' => $zoneId,
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
 
-        // Display restaurants
-        data.restaurants.forEach(restaurant => {
-          console.log(`${restaurant.name} - Rating: ${restaurant.rating} ⭐`);
-        });
+        if ($response->successful()) {
+            $data = $response->json();
 
-        // Pagination info
-        const totalPages = Math.ceil(data.total_size / data.limit);
-        console.log(`Page ${page + 1} of ${totalPages}`);
+            // Access restaurant data
+            $restaurants = $data['restaurants'];
+            $totalSize = $data['total_size'];
 
-        return data;
-      } catch (error) {
-        console.error('Failed to load restaurants:', error);
-      }
-    };
+            return response()->json([
+                'success' => true,
+                'total' => $totalSize,
+                'restaurants' => $restaurants,
+                'pagination' => [
+                    'current_page' => ($offset / $limit) + 1,
+                    'total_pages' => ceil($totalSize / $limit),
+                    'per_page' => $limit,
+                ],
+            ]);
+        }
 
-    // Load zone 1 restaurants
-    loadLatestRestaurants(1);
+        // Handle zone not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Zone not found or inactive',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid request parameters',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load restaurants',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Failed to fetch latest restaurants', [
+            'zone_id' => $zoneId,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to restaurant service',
+        ], 500);
+    }
     ```
   </Tabs.Tab>
   <Tabs.Tab>
     ```dart
-    // Flutter - Fetch latest restaurants
-    import 'package:http/http.dart' as http;
     import 'dart:convert';
+    import 'package:http/http.dart' as http;
 
-    class RestaurantService {
-      static const String baseUrl = 'https://currydash.au/api/v1';
-
-      Future<RestaurantListResponse> fetchLatestRestaurants({
-        required int zoneId,
-        int limit = 10,
-        int offset = 0,
-      }) async {
-        final uri = Uri.parse('$baseUrl/restaurants/latest').replace(
+    Future<Map<String, dynamic>> fetchLatestRestaurants({
+      required int zoneId,
+      int limit = 10,
+      int offset = 0,
+    }) async {
+      try {
+        final uri = Uri.parse('https://currydash.au/api/v1/restaurants/latest').replace(
           queryParameters: {
             'zone_id': zoneId.toString(),
             'limit': limit.toString(),
@@ -271,49 +310,61 @@ Serialize restaurant data with all required fields and metadata.
           },
         );
 
-        final response = await http.get(uri);
-
-        if (response.statusCode == 200) {
-          final json = jsonDecode(response.body);
-          return RestaurantListResponse.fromJson(json);
-        } else {
-          throw Exception('Failed to load restaurants');
-        }
-      }
-    }
-
-    // Usage in UI
-    class RestaurantListScreen extends StatefulWidget {
-      final int zoneId;
-
-      @override
-      _RestaurantListScreenState createState() => _RestaurantListScreenState();
-    }
-
-    class _RestaurantListScreenState extends State<RestaurantListScreen> {
-      final _service = RestaurantService();
-      int _currentPage = 0;
-
-      @override
-      Widget build(BuildContext context) {
-        return FutureBuilder<RestaurantListResponse>(
-          future: _service.fetchLatestRestaurants(
-            zoneId: widget.zoneId,
-            offset: _currentPage * 10,
-          ),
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return ListView.builder(
-                itemCount: snapshot.data!.restaurants.length,
-                itemBuilder: (context, index) {
-                  final restaurant = snapshot.data!.restaurants[index];
-                  return RestaurantCard(restaurant: restaurant);
-                },
-              );
-            }
-            return CircularProgressIndicator();
+        final response = await http.get(
+          uri,
+          headers: {
+            'Accept': 'application/json',
           },
         );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'total': data['total_size'],
+            'restaurants': data['restaurants'],
+            'pagination': {
+              'current_page': (offset / limit).floor() + 1,
+              'total_pages': (data['total_size'] / limit).ceil(),
+              'per_page': limit,
+            },
+          };
+        }
+
+        // Handle zone not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Zone not found or inactive',
+            'errors': errors,
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Invalid request parameters',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to load restaurants',
+        };
+
+      } catch (e) {
+        debugPrint('Failed to fetch latest restaurants: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to restaurant service',
+        };
       }
     }
     ```
@@ -496,123 +547,113 @@ Serialize complete restaurant profile with all metadata and relationships.
 
 </Steps>
 
-**Client Implementation Example**:
+**Code Examples**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
-    ```javascript
-    // Fetch restaurant details
-    const loadRestaurantDetails = async (restaurantId) => {
-      try {
-        const response = await fetch(
-          `https://currydash.au/api/v1/restaurants/details/${restaurantId}`
-        );
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Restaurant not found');
-          }
-          throw new Error('Failed to load restaurant');
+    try {
+        $restaurantId = 15;
+
+        $response = Http::get("https://currydash.au/api/v1/restaurants/details/{$restaurantId}");
+
+        if ($response->successful()) {
+            $restaurant = $response->json();
+
+            // Access restaurant details
+            return response()->json([
+                'success' => true,
+                'restaurant' => $restaurant,
+                'is_open' => $restaurant['open'],
+                'operating_hours' => $restaurant['opening_hours'],
+                'menu_categories' => $restaurant['categories'],
+            ]);
         }
 
-        const restaurant = await response.json();
+        // Handle restaurant not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Restaurant not found',
+                'errors' => $errors,
+            ], 404);
+        }
 
-        // Display restaurant info
-        console.log(`${restaurant.name}`);
-        console.log(`Rating: ${restaurant.rating} ⭐ (${restaurant.rating_count} reviews)`);
-        console.log(`Status: ${restaurant.open ? 'Open Now' : 'Closed'}`);
-        console.log(`Delivery Time: ${restaurant.delivery_time}`);
-        console.log(`Min Order: $${restaurant.minimum_order}`);
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load restaurant details',
+        ], $response->status());
 
-        // Display menu categories
-        console.log('\nMenu Categories:');
-        restaurant.categories.forEach(cat => {
-          console.log(`- ${cat.name} (${cat.items_count} items)`);
-        });
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Failed to fetch restaurant details', [
+            'restaurant_id' => $restaurantId,
+            'error' => $e->getMessage(),
+        ]);
 
-        return restaurant;
-      } catch (error) {
-        console.error('Error:', error.message);
-      }
-    };
-
-    // Usage
-    loadRestaurantDetails(15);
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to restaurant service',
+        ], 500);
+    }
     ```
   </Tabs.Tab>
   <Tabs.Tab>
     ```dart
-    // Flutter - Fetch restaurant details
-    import 'package:http/http.dart' as http;
     import 'dart:convert';
+    import 'package:http/http.dart' as http;
 
-    class RestaurantService {
-      static const String baseUrl = 'https://currydash.au/api/v1';
-
-      Future<Restaurant> fetchRestaurantDetails(int restaurantId) async {
+    Future<Map<String, dynamic>> fetchRestaurantDetails({
+      required int restaurantId,
+    }) async {
+      try {
         final response = await http.get(
-          Uri.parse('$baseUrl/restaurants/details/$restaurantId'),
+          Uri.parse('https://currydash.au/api/v1/restaurants/details/$restaurantId'),
+          headers: {
+            'Accept': 'application/json',
+          },
         );
 
         if (response.statusCode == 200) {
-          final json = jsonDecode(response.body);
-          return Restaurant.fromJson(json);
-        } else if (response.statusCode == 404) {
-          throw Exception('Restaurant not found');
-        } else {
-          throw Exception('Failed to load restaurant details');
+          final restaurant = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'restaurant': restaurant,
+            'is_open': restaurant['open'],
+            'operating_hours': restaurant['opening_hours'],
+            'menu_categories': restaurant['categories'],
+          };
         }
-      }
-    }
 
-    // Usage in UI
-    class RestaurantDetailScreen extends StatelessWidget {
-      final int restaurantId;
-      final _service = RestaurantService();
+        // Handle restaurant not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Restaurant not found',
+            'errors': errors,
+          };
+        }
 
-      RestaurantDetailScreen({required this.restaurantId});
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to load restaurant details',
+        };
 
-      @override
-      Widget build(BuildContext context) {
-        return Scaffold(
-          body: FutureBuilder<Restaurant>(
-            future: _service.fetchRestaurantDetails(restaurantId),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
+      } catch (e) {
+        debugPrint('Failed to fetch restaurant details: $e');
 
-              if (!snapshot.hasData) {
-                return Center(child: CircularProgressIndicator());
-              }
-
-              final restaurant = snapshot.data!;
-
-              return CustomScrollView(
-                slivers: [
-                  SliverAppBar(
-                    expandedHeight: 200,
-                    flexibleSpace: FlexibleSpaceBar(
-                      title: Text(restaurant.name),
-                      background: Image.network(
-                        restaurant.coverPhoto,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        RestaurantInfoCard(restaurant: restaurant),
-                        MenuCategoriesSection(categories: restaurant.categories),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        );
+        return {
+          'success': false,
+          'message': 'Unable to connect to restaurant service',
+        };
       }
     }
     ```
@@ -786,60 +827,105 @@ Tag each result with `match_type` indicating where the match was found.
 
 </Steps>
 
-**Client Implementation Example**:
+**Code Examples**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
-    ```javascript
-    // Search restaurants
-    const searchRestaurants = async (zoneId, query, filterBy = 'all') => {
-      try {
-        const params = new URLSearchParams({
-          zone_id: zoneId,
-          query: query,
-          filter_by: filterBy,
-          limit: 10,
-          offset: 0
-        });
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
 
-        const response = await fetch(
-          `https://currydash.au/api/v1/restaurants/search?${params}`
-        );
+    try {
+        $zoneId = 1;
+        $query = 'curry';
+        $filterBy = 'all'; // Options: 'all', 'name', 'cuisine', 'dish'
+        $limit = 10;
+        $offset = 0;
 
-        const data = await response.json();
+        $response = Http::get('https://currydash.au/api/v1/restaurants/search', [
+            'zone_id' => $zoneId,
+            'query' => $query,
+            'filter_by' => $filterBy,
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
 
-        console.log(`Found ${data.total_size} restaurants matching "${query}"`);
+        if ($response->successful()) {
+            $data = $response->json();
 
-        data.restaurants.forEach(restaurant => {
-          console.log(`- ${restaurant.name} (${restaurant.match_type} match)`);
-        });
+            // Access search results
+            $restaurants = $data['restaurants'];
+            $totalSize = $data['total_size'];
 
-        return data;
-      } catch (error) {
-        console.error('Search failed:', error);
-      }
-    };
+            return response()->json([
+                'success' => true,
+                'query' => $query,
+                'filter_by' => $filterBy,
+                'total_results' => $totalSize,
+                'restaurants' => $restaurants,
+                'pagination' => [
+                    'current_page' => ($offset / $limit) + 1,
+                    'total_pages' => ceil($totalSize / $limit),
+                    'per_page' => $limit,
+                ],
+            ]);
+        }
 
-    // Usage examples
-    searchRestaurants(1, 'curry');  // Search all
-    searchRestaurants(1, 'sri lankan', 'cuisine');  // Filter by cuisine
-    searchRestaurants(1, 'chicken', 'dish');  // Search dishes
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid search parameters',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle zone not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Zone not found or inactive',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Search failed',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Restaurant search failed', [
+            'zone_id' => $zoneId,
+            'query' => $query,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to restaurant service',
+        ], 500);
+    }
     ```
   </Tabs.Tab>
   <Tabs.Tab>
     ```dart
-    // Flutter - Search restaurants
-    class RestaurantService {
-      static const String baseUrl = 'https://currydash.au/api/v1';
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
 
-      Future<RestaurantListResponse> searchRestaurants({
-        required int zoneId,
-        required String query,
-        String filterBy = 'all',
-        int limit = 10,
-        int offset = 0,
-      }) async {
-        final uri = Uri.parse('$baseUrl/restaurants/search').replace(
+    Future<Map<String, dynamic>> searchRestaurants({
+      required int zoneId,
+      required String query,
+      String filterBy = 'all',
+      int limit = 10,
+      int offset = 0,
+    }) async {
+      try {
+        final uri = Uri.parse('https://currydash.au/api/v1/restaurants/search').replace(
           queryParameters: {
             'zone_id': zoneId.toString(),
             'query': query,
@@ -849,62 +935,63 @@ Tag each result with `match_type` indicating where the match was found.
           },
         );
 
-        final response = await http.get(uri);
-
-        if (response.statusCode == 200) {
-          final json = jsonDecode(response.body);
-          return RestaurantListResponse.fromJson(json);
-        } else {
-          throw Exception('Search failed');
-        }
-      }
-    }
-
-    // Usage in search screen
-    class RestaurantSearchDelegate extends SearchDelegate<Restaurant> {
-      final int zoneId;
-      final RestaurantService _service = RestaurantService();
-
-      RestaurantSearchDelegate({required this.zoneId});
-
-      @override
-      Widget buildResults(BuildContext context) {
-        if (query.length < 2) {
-          return Center(child: Text('Enter at least 2 characters'));
-        }
-
-        return FutureBuilder<RestaurantListResponse>(
-          future: _service.searchRestaurants(
-            zoneId: zoneId,
-            query: query,
-          ),
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              final results = snapshot.data!.restaurants;
-
-              if (results.isEmpty) {
-                return Center(child: Text('No restaurants found'));
-              }
-
-              return ListView.builder(
-                itemCount: results.length,
-                itemBuilder: (context, index) {
-                  return RestaurantSearchResultTile(
-                    restaurant: results[index],
-                  );
-                },
-              );
-            }
-
-            return Center(child: CircularProgressIndicator());
+        final response = await http.get(
+          uri,
+          headers: {
+            'Accept': 'application/json',
           },
         );
-      }
 
-      @override
-      Widget buildSuggestions(BuildContext context) {
-        // Show search suggestions or recent searches
-        return buildResults(context);
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'query': query,
+            'filter_by': filterBy,
+            'total_results': data['total_size'],
+            'restaurants': data['restaurants'],
+            'pagination': {
+              'current_page': (offset / limit).floor() + 1,
+              'total_pages': (data['total_size'] / limit).ceil(),
+              'per_page': limit,
+            },
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Invalid search parameters',
+            'errors': errors,
+          };
+        }
+
+        // Handle zone not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Zone not found or inactive',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Search failed',
+        };
+
+      } catch (e) {
+        debugPrint('Restaurant search failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to restaurant service',
+        };
       }
     }
     ```
