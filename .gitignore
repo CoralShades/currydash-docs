@@ -26,3 +26,4 @@ docs/out/
 .auto-claude/
 !.auto-claude/roadmap/
 !.auto-claude/roadmap/roadmap.json
+nul
