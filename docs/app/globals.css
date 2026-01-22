@@ -75,7 +75,10 @@
 
 /* Make sidebar visible and properly styled */
 .nextra-sidebar-container {
+  @apply block;
+  @apply w-64 min-h-screen overflow-y-auto;
   @apply border-r border-gray-200 dark:border-gray-800;
+  @apply bg-white dark:bg-gray-950;
 }
 
 /* Sidebar items */
