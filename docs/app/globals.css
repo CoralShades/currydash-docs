@@ -73,39 +73,76 @@
    Sidebar Styling
    ========================================== */
 
-/* Make sidebar visible and properly styled */
-.nextra-sidebar-container {
-  @apply block;
-  @apply w-64 min-h-screen overflow-y-auto;
-  @apply border-r border-gray-200 dark:border-gray-800;
-  @apply bg-white dark:bg-gray-950;
+/* Base sidebar styling - hidden on mobile by default */
+.nextra-sidebar-container,
+aside.nextra-sidebar,
+nav[aria-label="Sidebar"] {
+  @apply hidden;
+}
+
+/* Tablet and up (768px+) - Show sidebar */
+@media (min-width: 768px) {
+  .nextra-sidebar-container,
+  aside.nextra-sidebar,
+  nav[aria-label="Sidebar"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    @apply w-64 min-h-screen overflow-y-auto;
+    @apply border-r border-gray-200 dark:border-gray-800;
+    @apply bg-white dark:bg-gray-950;
+  }
+}
+
+/* Desktop (1024px+) - Ensure sidebar is fully visible */
+@media (min-width: 1024px) {
+  .nextra-sidebar-container,
+  aside.nextra-sidebar,
+  nav[aria-label="Sidebar"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }
 
 /* Sidebar items */
-.nextra-sidebar a {
+.nextra-sidebar a,
+aside.nextra-sidebar a,
+nav[aria-label="Sidebar"] a {
   @apply rounded-lg px-3 py-2 text-sm;
   @apply transition-all duration-200;
+  display: block !important;
+  pointer-events: auto !important;
 }
 
-.nextra-sidebar a:hover {
+.nextra-sidebar a:hover,
+aside.nextra-sidebar a:hover,
+nav[aria-label="Sidebar"] a:hover {
   @apply bg-gray-100 dark:bg-gray-800;
 }
 
-.nextra-sidebar a[data-active="true"] {
+.nextra-sidebar a[data-active="true"],
+aside.nextra-sidebar a[data-active="true"],
+nav[aria-label="Sidebar"] a[data-active="true"] {
   @apply bg-amber-50 dark:bg-amber-900/20;
   @apply text-amber-700 dark:text-amber-400;
   @apply font-medium;
 }
 
 /* Sidebar separators */
-.nextra-sidebar [data-separator] {
+.nextra-sidebar [data-separator],
+aside.nextra-sidebar [data-separator],
+nav[aria-label="Sidebar"] [data-separator] {
   @apply text-xs font-semibold uppercase tracking-wider;
   @apply text-gray-500 dark:text-gray-400;
   @apply mt-6 mb-2 px-3;
 }
 
 /* Collapsible sections */
-.nextra-sidebar summary {
+.nextra-sidebar summary,
+aside.nextra-sidebar summary,
+nav[aria-label="Sidebar"] summary {
   @apply cursor-pointer list-none;
   @apply flex items-center justify-between;
   @apply px-3 py-2 rounded-lg;
@@ -113,11 +150,15 @@
   @apply transition-colors duration-200;
 }
 
-.nextra-sidebar summary::marker {
+.nextra-sidebar summary::marker,
+aside.nextra-sidebar summary::marker,
+nav[aria-label="Sidebar"] summary::marker {
   display: none;
 }
 
-.nextra-sidebar details[open] summary svg {
+.nextra-sidebar details[open] summary svg,
+aside.nextra-sidebar details[open] summary svg,
+nav[aria-label="Sidebar"] details[open] summary svg {
   @apply rotate-90;
 }
 
