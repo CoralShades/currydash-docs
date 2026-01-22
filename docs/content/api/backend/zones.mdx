@@ -147,7 +147,134 @@ Zone data is cached for 1 hour to improve performance (configurable).
 
 **Client Implementation Example**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+    use Illuminate\Support\Facades\Cache;
+    use Illuminate\Support\Facades\Log;
+
+    /**
+     * Fetch all active service zones
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getServiceZones()
+    {
+        try {
+            // Try to get zones from cache first (1 hour cache)
+            $zones = Cache::remember('service_zones', 3600, function () {
+                $response = Http::timeout(10)
+                    ->get('https://api.currydash.au/api/v1/zone/list');
+
+                if ($response->successful()) {
+                    return $response->json();
+                }
+
+                // If request fails, throw exception to skip caching
+                throw new \Exception('Failed to fetch zones');
+            });
+
+            return response()->json([
+                'success' => true,
+                'zones' => $zones,
+                'cached' => true,
+            ]);
+
+        } catch (RequestException $e) {
+            // Handle network or timeout errors
+            Log::error('Zone list request failed', [
+                'error' => $e->getMessage(),
+                'status' => $e->response?->status(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to retrieve service zones',
+                'errors' => [
+                    [
+                        'code' => 'network-error',
+                        'message' => 'Connection to zone service failed',
+                    ]
+                ],
+            ], 500);
+
+        } catch (\Exception $e) {
+            // Handle other errors
+            Log::error('Unexpected error fetching zones', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load zones',
+                'errors' => [
+                    [
+                        'code' => 'server-error',
+                        'message' => $e->getMessage(),
+                    ]
+                ],
+            ], 500);
+        }
+    }
+
+    /**
+     * Process zones for display on map
+     *
+     * @return array
+     */
+    public function getZonesForMap()
+    {
+        try {
+            $response = Http::get('https://api.currydash.au/api/v1/zone/list');
+
+            if ($response->successful()) {
+                $zones = $response->json();
+
+                // Transform zones for frontend map rendering
+                $mapZones = collect($zones)->map(function ($zone) {
+                    return [
+                        'id' => $zone['id'],
+                        'name' => $zone['name'],
+                        'polygon' => $zone['coordinates'],
+                        'isActive' => $zone['status'],
+                        'color' => '#FF6B35', // CurryDash brand color
+                    ];
+                })->toArray();
+
+                return response()->json([
+                    'success' => true,
+                    'zones' => $mapZones,
+                ]);
+            }
+
+            // Handle server errors (500)
+            if ($response->status() === 500) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Zone service temporarily unavailable',
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve zones',
+            ], $response->status());
+
+        } catch (RequestException $e) {
+            Log::error('Failed to fetch zones for map', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to load zone map data',
+            ], 500);
+        }
+    }
+    ```
+  </Tabs.Tab>
   <Tabs.Tab>
     ```javascript
     // Fetch zones and render on map
@@ -353,7 +480,246 @@ public function isPointInPolygon($point, $polygon)
 
 **Client Implementation Example**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+    use Illuminate\Support\Facades\Log;
+    use Illuminate\Support\Facades\Validator;
+
+    /**
+     * Check if coordinates are within a serviceable zone
+     *
+     * @param float $latitude
+     * @param float $longitude
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkZoneAvailability($latitude, $longitude)
+    {
+        // Validate coordinates
+        $validator = Validator::make([
+            'lat' => $latitude,
+            'lng' => $longitude,
+        ], [
+            'lat' => 'required|numeric|between:-90,90',
+            'lng' => 'required|numeric|between:-180,180',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid coordinates',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $response = Http::timeout(10)
+                ->get('https://api.currydash.au/api/v1/zone/check', [
+                    'lat' => $latitude,
+                    'lng' => $longitude,
+                ]);
+
+            // Success - location is serviceable
+            if ($response->successful()) {
+                $data = $response->json();
+
+                // Store zone info in session for future requests
+                session([
+                    'current_zone_id' => $data['zone_id'],
+                    'current_zone_name' => $data['zone_name'],
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'serviceable' => $data['serviceable'],
+                    'zone' => [
+                        'id' => $data['zone_id'],
+                        'name' => $data['zone_name'],
+                    ],
+                ]);
+            }
+
+            // Handle 404 - location not serviceable
+            if ($response->status() === 404) {
+                $error = $response->json();
+
+                return response()->json([
+                    'success' => false,
+                    'serviceable' => false,
+                    'message' => 'Service not available in this area',
+                    'errors' => $error['errors'] ?? [],
+                ], 404);
+            }
+
+            // Handle validation errors (422)
+            if ($response->status() === 422) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid request parameters',
+                    'errors' => $response->json('errors', []),
+                ], 422);
+            }
+
+            // Handle other errors
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check zone availability',
+            ], $response->status());
+
+        } catch (RequestException $e) {
+            // Handle network or timeout errors
+            Log::error('Zone check request failed', [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to verify service availability',
+                'errors' => [
+                    [
+                        'code' => 'network-error',
+                        'message' => 'Connection failed',
+                    ]
+                ],
+            ], 500);
+        }
+    }
+
+    /**
+     * Validate delivery address and check zone
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function validateDeliveryAddress(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'address' => 'required|string|max:255',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $response = Http::get('https://api.currydash.au/api/v1/zone/check', [
+                'lat' => $request->latitude,
+                'lng' => $request->longitude,
+            ]);
+
+            if ($response->successful()) {
+                $zoneData = $response->json();
+
+                // Address is serviceable - proceed with order
+                return response()->json([
+                    'success' => true,
+                    'serviceable' => true,
+                    'message' => "Great! We deliver to {$zoneData['zone_name']}",
+                    'zone' => [
+                        'id' => $zoneData['zone_id'],
+                        'name' => $zoneData['zone_name'],
+                    ],
+                    'address' => $request->address,
+                ]);
+            }
+
+            // Address not serviceable
+            if ($response->status() === 404) {
+                return response()->json([
+                    'success' => false,
+                    'serviceable' => false,
+                    'message' => 'Sorry, we don\'t deliver to this area yet',
+                    'suggestion' => 'Try a different address or check back later',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to validate address',
+            ], $response->status());
+
+        } catch (RequestException $e) {
+            Log::error('Address validation failed', [
+                'address' => $request->address,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to validate delivery address',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get restaurants available in user's zone
+     *
+     * @param float $latitude
+     * @param float $longitude
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getRestaurantsByLocation($latitude, $longitude)
+    {
+        try {
+            // First, check which zone the user is in
+            $zoneResponse = Http::get('https://api.currydash.au/api/v1/zone/check', [
+                'lat' => $latitude,
+                'lng' => $longitude,
+            ]);
+
+            if ($zoneResponse->status() === 404) {
+                return response()->json([
+                    'success' => false,
+                    'serviceable' => false,
+                    'message' => 'No restaurants available in your area',
+                    'restaurants' => [],
+                ], 404);
+            }
+
+            if ($zoneResponse->successful()) {
+                $zone = $zoneResponse->json();
+
+                // Fetch restaurants for this zone
+                // (This would call your internal restaurant API)
+                $restaurants = $this->getRestaurantsByZoneId($zone['zone_id']);
+
+                return response()->json([
+                    'success' => true,
+                    'zone' => $zone,
+                    'restaurants' => $restaurants,
+                    'count' => count($restaurants),
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to determine service area',
+            ], $zoneResponse->status());
+
+        } catch (RequestException $e) {
+            Log::error('Failed to get restaurants by location', [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to load restaurants',
+            ], 500);
+        }
+    }
+    ```
+  </Tabs.Tab>
   <Tabs.Tab>
     ```javascript
     // Check if user location is serviceable
