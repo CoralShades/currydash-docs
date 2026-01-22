@@ -1,0 +1,669 @@
+---
+title: Orders
+description: Order management endpoints including placing orders, tracking, order history, and order details
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Orders
+
+Comprehensive order management endpoints for placing orders, real-time tracking, viewing order history, and retrieving detailed order information.
+
+<Callout type="info">
+  All order endpoints require authentication via JWT token (`auth:api` guard) unless specified otherwise.
+</Callout>
+
+## Overview
+
+The CurryDash order management system provides:
+
+- **Order Placement**: Create orders from cart with payment processing
+- **Real-Time Tracking**: Track order status and delivery person location
+- **Order History**: View past orders with filtering and pagination
+- **Order Details**: Retrieve complete order information including items and delivery details
+- **Schedule Orders**: Support for scheduled delivery times
+- **Multiple Payment Methods**: Cash, Stripe, PayPal, and Wallet payments
+
+### Order Status Flow
+
+| Status | Description | Next Status |
+|--------|-------------|-------------|
+| `pending` | Order placed, awaiting restaurant confirmation | `confirmed` or `canceled` |
+| `confirmed` | Restaurant confirmed, preparing food | `processing` |
+| `processing` | Food being prepared | `out_for_delivery` |
+| `out_for_delivery` | Assigned to delivery person | `delivered` |
+| `delivered` | Order completed successfully | - |
+| `canceled` | Order canceled by customer/restaurant | - |
+| `failed` | Payment or delivery failed | - |
+
+### Payment Status
+
+| Status | Description |
+|--------|-------------|
+| `paid` | Payment successfully processed |
+| `unpaid` | Cash on delivery (payment pending) |
+| `failed` | Payment processing failed |
+| `refunded` | Payment refunded after cancellation |
+
+---
+
+## Endpoints
+
+### Place Order
+
+Create a new order from the user's cart with payment processing and delivery details.
+
+#### POST `/api/v1/orders`
+
+**Controller**: `App\Http\Controllers\Api\V1\OrderController@place_order`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 10 requests/minute per user
+
+**Request Body**:
+
+```json
+{
+  "payment_method": "stripe",
+  "order_amount": 143.55,
+  "order_type": "delivery",
+  "delivery_address_id": 12,
+  "distance": 2.3,
+  "schedule_at": null,
+  "order_note": "Please ring the doorbell",
+  "coupon_discount_amount": 10.00,
+  "coupon_code": "WELCOME10"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payment_method` | string | Yes | Payment method: `cash_on_delivery`, `stripe`, `paypal`, `wallet` |
+| `order_amount` | decimal | Yes | Total order amount including all charges |
+| `order_type` | string | Yes | Order type: `delivery` or `takeaway` |
+| `delivery_address_id` | integer | Conditional | Required if `order_type` is `delivery` |
+| `distance` | decimal | No | Distance in km (calculated automatically if not provided) |
+| `schedule_at` | datetime | No | Scheduled delivery time (ISO 8601 format) |
+| `order_note` | string | No | Special instructions (max 500 characters) |
+| `coupon_discount_amount` | decimal | No | Discount amount from applied coupon |
+| `coupon_code` | string | No | Coupon code applied to order |
+
+**Validation Rules**:
+
+```php
+[
+    'payment_method' => 'required|in:cash_on_delivery,stripe,paypal,wallet',
+    'order_amount' => 'required|numeric|min:0',
+    'order_type' => 'required|in:delivery,takeaway',
+    'delivery_address_id' => 'required_if:order_type,delivery|exists:addresses,id',
+    'distance' => 'nullable|numeric',
+    'schedule_at' => 'nullable|date|after:now',
+    'order_note' => 'nullable|string|max:500',
+    'coupon_discount_amount' => 'nullable|numeric|min:0',
+    'coupon_code' => 'nullable|exists:coupons,code',
+]
+```
+
+**Business Logic**:
+
+<Steps>
+
+### Validate Cart
+Cart must not be empty and all items must be from the same restaurant.
+
+### Validate Delivery Address
+For delivery orders, verify address is within restaurant's service zone.
+
+### Check Minimum Order
+Verify order meets restaurant's minimum order amount.
+
+### Apply Coupon
+Validate coupon code and apply discount if valid.
+
+### Calculate Delivery Charge
+Calculate delivery fee based on distance and zone.
+
+### Process Payment
+Process payment via selected method (Stripe, PayPal, or Wallet).
+
+### Create Order
+Create order record with all items and details.
+
+### Clear Cart
+Remove all items from user's cart.
+
+### Send Notifications
+Trigger notifications to customer, vendor, and available delivery personnel.
+
+</Steps>
+
+**Success Response** (201 Created):
+
+```json
+{
+  "order_id": 789,
+  "order_status": "pending",
+  "payment_status": "paid",
+  "total_amount": 143.55,
+  "estimated_delivery_time": "30-40 min",
+  "message": "Order placed successfully"
+}
+```
+
+**Error Response** (400 Bad Request - Empty Cart):
+
+```json
+{
+  "errors": [
+    {
+      "code": "order-001",
+      "message": "Your cart is empty"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request - Minimum Order):
+
+```json
+{
+  "errors": [
+    {
+      "code": "order-002",
+      "message": "Minimum order amount is $25.00. Your order is $20.50"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request - Restaurant Closed):
+
+```json
+{
+  "errors": [
+    {
+      "code": "order-003",
+      "message": "Restaurant is currently closed. Opens at 11:00 AM"
+    }
+  ]
+}
+```
+
+**Error Response** (402 Payment Required):
+
+```json
+{
+  "errors": [
+    {
+      "code": "payment-001",
+      "message": "Payment processing failed. Please check your payment method and try again"
+    }
+  ]
+}
+```
+
+**Error Response** (404 Not Found - Zone):
+
+```json
+{
+  "errors": [
+    {
+      "code": "zone-001",
+      "message": "Delivery service is not available at this address"
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  Scheduled orders must be placed at least 1 hour in advance. The system validates restaurant operating hours for scheduled delivery times.
+</Callout>
+
+---
+
+### Track Order
+
+Track order status in real-time including delivery person location and estimated delivery time.
+
+#### GET `/api/v1/orders/track`
+
+**Controller**: `App\Http\Controllers\Api\V1\OrderController@track`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `order_id` | integer | Yes | The order ID to track |
+
+**Example Request**:
+
+```
+GET /api/v1/orders/track?order_id=789
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "order_id": 789,
+  "order_status": "out_for_delivery",
+  "payment_status": "paid",
+  "restaurant": {
+    "id": 15,
+    "name": "Lankan Spice House",
+    "phone": "+61398765432",
+    "address": "123 Church St, Richmond VIC 3121",
+    "latitude": -37.8236,
+    "longitude": 145.0012,
+    "logo": "https://currydash.au/storage/restaurant/logo_15.jpg"
+  },
+  "delivery_man": {
+    "id": 45,
+    "name": "Ravi Kumar",
+    "phone": "+61412345678",
+    "latitude": -37.8250,
+    "longitude": 145.0020,
+    "image": "https://currydash.au/storage/delivery/dm_45.jpg",
+    "rating": 4.8
+  },
+  "delivery_address": {
+    "contact_person_name": "John Doe",
+    "contact_person_number": "+61423456789",
+    "address": "45 Bridge Rd, Richmond VIC 3121",
+    "house": "Unit 5",
+    "floor": "2nd Floor",
+    "road": "Bridge Road",
+    "latitude": -37.8260,
+    "longitude": 145.0030
+  },
+  "order_amount": 143.55,
+  "delivery_charge": 5.00,
+  "total_tax_amount": 13.05,
+  "coupon_discount_amount": 10.00,
+  "estimated_delivery_time": "2025-12-10T11:30:00Z",
+  "order_note": "Please ring the doorbell",
+  "created_at": "2025-12-10T10:45:00Z",
+  "confirmed_at": "2025-12-10T10:47:00Z",
+  "processing_at": "2025-12-10T10:52:00Z",
+  "out_for_delivery_at": "2025-12-10T11:10:00Z"
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "order-004",
+      "message": "Order not found or does not belong to you"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  The `delivery_man` object will be `null` until a delivery person is assigned to the order. Real-time location updates are provided via WebSocket for active deliveries.
+</Callout>
+
+---
+
+### Order History
+
+Retrieve paginated list of user's past orders with filtering options.
+
+#### GET `/api/v1/orders/history`
+
+**Controller**: `App\Http\Controllers\Api\V1\OrderController@get_order_list`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | integer | No | Number of orders per page (default: 10, max: 50) |
+| `offset` | integer | No | Pagination offset (default: 0) |
+| `status` | string | No | Filter by order status |
+| `order_type` | string | No | Filter by order type: `delivery` or `takeaway` |
+
+**Example Request**:
+
+```
+GET /api/v1/orders/history?limit=10&offset=0&status=delivered
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "total_size": 45,
+  "limit": 10,
+  "offset": 0,
+  "orders": [
+    {
+      "id": 789,
+      "order_status": "delivered",
+      "payment_status": "paid",
+      "payment_method": "stripe",
+      "order_type": "delivery",
+      "order_amount": 143.55,
+      "delivery_charge": 5.00,
+      "total_tax_amount": 13.05,
+      "coupon_discount_amount": 10.00,
+      "restaurant": {
+        "id": 15,
+        "name": "Lankan Spice House",
+        "logo": "https://currydash.au/storage/restaurant/logo_15.jpg",
+        "phone": "+61398765432"
+      },
+      "order_items_count": 3,
+      "created_at": "2025-12-10T10:45:00Z",
+      "delivered_at": "2025-12-10T11:35:00Z",
+      "is_rated": true
+    },
+    {
+      "id": 756,
+      "order_status": "delivered",
+      "payment_status": "paid",
+      "payment_method": "wallet",
+      "order_type": "delivery",
+      "order_amount": 78.50,
+      "delivery_charge": 5.00,
+      "total_tax_amount": 7.14,
+      "coupon_discount_amount": 0.00,
+      "restaurant": {
+        "id": 12,
+        "name": "Colombo Kitchen",
+        "logo": "https://currydash.au/storage/restaurant/logo_12.jpg",
+        "phone": "+61398123456"
+      },
+      "order_items_count": 2,
+      "created_at": "2025-12-08T18:20:00Z",
+      "delivered_at": "2025-12-08T19:15:00Z",
+      "is_rated": false
+    }
+  ]
+}
+```
+
+**Response Field Descriptions**:
+
+| Field | Description |
+|-------|-------------|
+| `total_size` | Total number of orders matching the filter |
+| `limit` | Number of orders returned per page |
+| `offset` | Current pagination offset |
+| `orders` | Array of order summary objects |
+| `is_rated` | Boolean indicating if customer has rated this order |
+
+**Error Response** (422 Unprocessable Entity - Invalid Parameters):
+
+```json
+{
+  "errors": [
+    {
+      "code": "validation-001",
+      "message": "The limit must not be greater than 50.",
+      "field": "limit"
+    }
+  ]
+}
+```
+
+<Callout type="tip">
+  Use pagination for better performance. The API returns a maximum of 50 orders per request.
+</Callout>
+
+---
+
+### Order Details
+
+Retrieve complete details for a specific order including all items, delivery information, and transaction details.
+
+#### GET `/api/v1/orders/details/{order_id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\OrderController@get_order_details`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**Path Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `order_id` | integer | Yes | The order ID to retrieve |
+
+**Example Request**:
+
+```
+GET /api/v1/orders/details/789
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "id": 789,
+  "order_status": "delivered",
+  "payment_status": "paid",
+  "payment_method": "stripe",
+  "transaction_reference": "pi_3MnJK2LkdIwHu7ix0hF8fJ9a",
+  "order_type": "delivery",
+  "order_amount": 143.55,
+  "delivery_charge": 5.00,
+  "total_tax_amount": 13.05,
+  "coupon_discount_amount": 10.00,
+  "order_note": "Please ring the doorbell",
+  "restaurant": {
+    "id": 15,
+    "name": "Lankan Spice House",
+    "logo": "https://currydash.au/storage/restaurant/logo_15.jpg",
+    "cover_photo": "https://currydash.au/storage/restaurant/cover_15.jpg",
+    "phone": "+61398765432",
+    "email": "contact@lankanspicehouse.com.au",
+    "address": "123 Church St, Richmond VIC 3121",
+    "latitude": -37.8236,
+    "longitude": 145.0012,
+    "rating": 4.7,
+    "rating_count": 342
+  },
+  "delivery_address": {
+    "id": 12,
+    "address_type": "home",
+    "contact_person_name": "John Doe",
+    "contact_person_number": "+61423456789",
+    "address": "45 Bridge Rd, Richmond VIC 3121",
+    "house": "Unit 5",
+    "floor": "2nd Floor",
+    "road": "Bridge Road",
+    "latitude": -37.8260,
+    "longitude": 145.0030
+  },
+  "delivery_man": {
+    "id": 45,
+    "f_name": "Ravi",
+    "l_name": "Kumar",
+    "phone": "+61412345678",
+    "email": "ravi.kumar@currydash.au",
+    "image": "https://currydash.au/storage/delivery/dm_45.jpg",
+    "rating": 4.8,
+    "rating_count": 1247
+  },
+  "order_details": [
+    {
+      "id": 1234,
+      "food_id": 10,
+      "package_id": null,
+      "food_details": {
+        "id": 10,
+        "name": "Chicken Curry",
+        "description": "Tender chicken in Sri Lankan spices",
+        "image": "https://currydash.au/storage/food/chicken_curry.jpg",
+        "category_id": 5,
+        "category_name": "Individual Curries",
+        "price": 14.00,
+        "tax": 1.40
+      },
+      "quantity": 2,
+      "price": 14.00,
+      "tax_amount": 1.40,
+      "discount_on_food": 0.00,
+      "add_ons": [],
+      "variation": null,
+      "created_at": "2025-12-10T10:45:00Z"
+    },
+    {
+      "id": 1235,
+      "food_id": null,
+      "package_id": 1,
+      "package_details": {
+        "id": 1,
+        "name": "Family Curry Pack",
+        "description": "Perfect for 4 people",
+        "image": "https://currydash.au/storage/packages/pack_1.jpg",
+        "base_price": 45.00,
+        "restaurant_id": 15
+      },
+      "quantity": 1,
+      "price": 50.00,
+      "tax_amount": 5.00,
+      "discount_on_food": 0.00,
+      "selected_options": [
+        {
+          "option_id": 1,
+          "food_id": 10,
+          "food_name": "Chicken Curry",
+          "additional_charge": 0.00
+        },
+        {
+          "option_id": 2,
+          "food_id": 11,
+          "food_name": "Lamb Curry",
+          "additional_charge": 5.00
+        },
+        {
+          "option_id": 5,
+          "food_id": 21,
+          "food_name": "Medium",
+          "additional_charge": 0.00
+        }
+      ],
+      "created_at": "2025-12-10T10:45:00Z"
+    },
+    {
+      "id": 1236,
+      "food_id": 45,
+      "package_id": null,
+      "food_details": {
+        "id": 45,
+        "name": "Mango Lassi",
+        "description": "Refreshing yogurt drink",
+        "image": "https://currydash.au/storage/food/mango_lassi.jpg",
+        "category_id": 8,
+        "category_name": "Beverages",
+        "price": 6.00,
+        "tax": 0.60
+      },
+      "quantity": 3,
+      "price": 6.00,
+      "tax_amount": 0.60,
+      "discount_on_food": 0.00,
+      "add_ons": [
+        {
+          "id": 2,
+          "name": "Extra Sweet",
+          "price": 0.50,
+          "quantity": 1
+        }
+      ],
+      "variation": null,
+      "created_at": "2025-12-10T10:45:00Z"
+    }
+  ],
+  "created_at": "2025-12-10T10:45:00Z",
+  "confirmed_at": "2025-12-10T10:47:00Z",
+  "processing_at": "2025-12-10T10:52:00Z",
+  "out_for_delivery_at": "2025-12-10T11:10:00Z",
+  "delivered_at": "2025-12-10T11:35:00Z",
+  "schedule_at": null,
+  "is_rated": true,
+  "rating": {
+    "order_id": 789,
+    "food_rating": 5,
+    "delivery_rating": 5,
+    "comment": "Excellent food and fast delivery!",
+    "created_at": "2025-12-10T12:00:00Z"
+  }
+}
+```
+
+**Response Field Descriptions**:
+
+| Field | Description |
+|-------|-------------|
+| `order_details` | Array of order items (individual foods or packages) |
+| `food_details` | Food item information (null if package) |
+| `package_details` | Package information (null if individual food) |
+| `selected_options` | Customization options for packages |
+| `add_ons` | Additional items added to food items |
+| `variation` | Size/variant selection (e.g., Small, Medium, Large) |
+| `transaction_reference` | Payment gateway transaction ID |
+| `rating` | Customer rating and review (null if not rated) |
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "order-004",
+      "message": "Order not found or does not belong to you"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  Order details include complete item information with selected package options, add-ons, and variations for accurate order fulfillment.
+</Callout>
+
+---
+
+## Related Documentation
+
+📚 **Cross-References**:
+- **Cart Management**: [Cart API](./cart) - Add items before placing orders
+- **Package System**: [Packages API](./packages) - Customize package orders
+- **Restaurant Info**: [Restaurants API](./restaurants) - Restaurant details and menus
+- **Payment Processing**: [Client API Reference](https://github.com/CoralShades/User-Web-Mobile/blob/main/docs/api-reference.md) - Payment integration
+- **Business Logic**: [Business Logic](../../developers/backend/architecture/service-layer-business-logic) - Order validation rules
+
+---
+
+## Error Codes Reference
+
+| Error Code | Description | HTTP Status |
+|------------|-------------|-------------|
+| `order-001` | Cart is empty | 400 |
+| `order-002` | Minimum order amount not met | 400 |
+| `order-003` | Restaurant is closed | 400 |
+| `order-004` | Order not found or unauthorized | 404 |
+| `order-005` | Invalid delivery address | 422 |
+| `payment-001` | Payment processing failed | 402 |
+| `zone-001` | Service not available in delivery area | 404 |
+
+---
+
+**Last Updated**: 2026-01-22
+**API Version**: v1.0

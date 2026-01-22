@@ -1,0 +1,1120 @@
+---
+title: Restaurant Endpoints
+description: Restaurant discovery and search endpoints for browsing venues, viewing menus, and filtering by location
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Restaurant Endpoints
+
+Public endpoints for discovering restaurants, viewing detailed information, and searching by cuisine or location.
+
+<Callout type="info">
+  Restaurant endpoints are **publicly accessible** and do not require authentication. Use zone-based filtering to display location-relevant content.
+</Callout>
+
+## Overview
+
+The CurryDash restaurant system provides:
+
+- **Restaurant Discovery**: Browse recently added restaurants and popular venues
+- **Detailed Information**: Access full restaurant profiles including menus, hours, and ratings
+- **Zone-based Filtering**: Filter restaurants by delivery zone and service area
+- **Search & Filter**: Find restaurants by name, cuisine type, or dish
+- **Real-time Status**: Check restaurant availability and operating hours
+
+### Use Cases
+
+| Use Case | Endpoint | Purpose |
+|----------|----------|---------|
+| App Home Screen | `GET /restaurants/latest` | Display recently added restaurants |
+| Restaurant Details | `GET /restaurants/details/{id}` | Show full restaurant profile and menu |
+| Search Results | `GET /restaurants/search` | Find restaurants by query |
+| Zone Filtering | `GET /restaurants/latest?zone_id=1` | Show zone-specific restaurants |
+
+---
+
+## Endpoints
+
+### Latest Restaurants
+
+Retrieve recently added restaurants filtered by service zone with pagination support.
+
+#### GET `/api/v1/restaurants/latest`
+
+**Controller**: `App\Http\Controllers\Api\V1\RestaurantController@get_latest_restaurants`
+
+**Authentication**: Not required (public)
+
+**Rate Limit**: 60 requests/minute per IP
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `zone_id` | integer | Yes | Zone ID for filtering restaurants by delivery area |
+| `limit` | integer | No | Number of results per page (default: 10, max: 50) |
+| `offset` | integer | No | Pagination offset (default: 0) |
+
+**Example Request**:
+
+```
+GET /api/v1/restaurants/latest?zone_id=1&limit=10&offset=0
+```
+
+**Validation Rules**:
+
+```php
+[
+    'zone_id' => 'required|integer|exists:zones,id',
+    'limit' => 'nullable|integer|min:1|max:50',
+    'offset' => 'nullable|integer|min:0',
+]
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "total_size": 45,
+  "limit": 10,
+  "offset": 0,
+  "restaurants": [
+    {
+      "id": 15,
+      "name": "Lankan Spice House",
+      "logo": "https://currydash.au/storage/restaurant/logo_15.jpg",
+      "cover_photo": "https://currydash.au/storage/restaurant/cover_15.jpg",
+      "cuisine": ["Sri Lankan", "Indian"],
+      "rating": 4.7,
+      "rating_count": 342,
+      "delivery_time": "30-40 min",
+      "minimum_order": 25.00,
+      "free_delivery": false,
+      "delivery_charge": 5.00,
+      "distance": 2.3,
+      "open": true,
+      "zone_id": 1,
+      "tax": 10.0,
+      "featured": true
+    },
+    {
+      "id": 16,
+      "name": "Curry King Melbourne",
+      "logo": "https://currydash.au/storage/restaurant/logo_16.jpg",
+      "cover_photo": "https://currydash.au/storage/restaurant/cover_16.jpg",
+      "cuisine": ["Indian", "Pakistani"],
+      "rating": 4.5,
+      "rating_count": 218,
+      "delivery_time": "25-35 min",
+      "minimum_order": 20.00,
+      "free_delivery": true,
+      "delivery_charge": 0.00,
+      "distance": 1.8,
+      "open": true,
+      "zone_id": 1,
+      "tax": 10.0,
+      "featured": false
+    }
+  ]
+}
+```
+
+**Response Fields**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_size` | integer | Total number of restaurants matching criteria |
+| `limit` | integer | Results per page (from request) |
+| `offset` | integer | Current pagination offset |
+| `restaurants` | array | Array of restaurant objects |
+| `restaurants[].id` | integer | Unique restaurant identifier |
+| `restaurants[].name` | string | Restaurant name |
+| `restaurants[].logo` | string | URL to restaurant logo image |
+| `restaurants[].cover_photo` | string | URL to restaurant cover image |
+| `restaurants[].cuisine` | array | List of cuisine types |
+| `restaurants[].rating` | float | Average rating (0-5 scale) |
+| `restaurants[].rating_count` | integer | Total number of ratings |
+| `restaurants[].delivery_time` | string | Estimated delivery time range |
+| `restaurants[].minimum_order` | float | Minimum order amount (AUD) |
+| `restaurants[].free_delivery` | boolean | `true` if restaurant offers free delivery |
+| `restaurants[].delivery_charge` | float | Delivery fee (AUD) |
+| `restaurants[].distance` | float | Distance from user location (km) |
+| `restaurants[].open` | boolean | `true` if currently accepting orders |
+| `restaurants[].zone_id` | integer | Service zone ID |
+| `restaurants[].tax` | float | Tax percentage |
+| `restaurants[].featured` | boolean | `true` if restaurant is featured |
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "zone-001",
+      "message": "Zone not found or inactive"
+    }
+  ]
+}
+```
+
+**Error Response** (422 Unprocessable Entity):
+
+```json
+{
+  "errors": [
+    {
+      "code": "validation-001",
+      "message": "The zone_id field is required.",
+      "field": "zone_id"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  **Distance Calculation**: The `distance` field requires user location (latitude/longitude) to be passed via additional query parameters `user_lat` and `user_lng` (optional). If not provided, distance may be `null` or calculated from zone center.
+</Callout>
+
+**Business Logic**:
+
+<Steps>
+
+### Zone Validation
+
+System validates that the provided `zone_id` exists and is active (`status = 1`).
+
+### Restaurant Query
+
+Retrieve restaurants where `zone_id` matches and `status = 1` (active restaurants only).
+
+### Apply Filters
+
+Filter by:
+- Restaurant approval status (`approved = 1`)
+- Operating hours (check if currently open)
+- Availability status
+
+### Sort by Latest
+
+Order results by `created_at DESC` to show newest restaurants first.
+
+### Pagination
+
+Apply `limit` and `offset` for paginated results.
+
+### Distance Calculation (Optional)
+
+If user coordinates provided, calculate distance using Haversine formula.
+
+### Response Formation
+
+Serialize restaurant data with all required fields and metadata.
+
+</Steps>
+
+**Client Implementation Example**:
+
+<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```javascript
+    // Fetch latest restaurants for a zone
+    const loadLatestRestaurants = async (zoneId, page = 0) => {
+      try {
+        const limit = 10;
+        const offset = page * limit;
+
+        const response = await fetch(
+          `https://currydash.au/api/v1/restaurants/latest?zone_id=${zoneId}&limit=${limit}&offset=${offset}`
+        );
+
+        const data = await response.json();
+
+        // Display restaurants
+        data.restaurants.forEach(restaurant => {
+          console.log(`${restaurant.name} - Rating: ${restaurant.rating} ⭐`);
+        });
+
+        // Pagination info
+        const totalPages = Math.ceil(data.total_size / data.limit);
+        console.log(`Page ${page + 1} of ${totalPages}`);
+
+        return data;
+      } catch (error) {
+        console.error('Failed to load restaurants:', error);
+      }
+    };
+
+    // Load zone 1 restaurants
+    loadLatestRestaurants(1);
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    // Flutter - Fetch latest restaurants
+    import 'package:http/http.dart' as http;
+    import 'dart:convert';
+
+    class RestaurantService {
+      static const String baseUrl = 'https://currydash.au/api/v1';
+
+      Future<RestaurantListResponse> fetchLatestRestaurants({
+        required int zoneId,
+        int limit = 10,
+        int offset = 0,
+      }) async {
+        final uri = Uri.parse('$baseUrl/restaurants/latest').replace(
+          queryParameters: {
+            'zone_id': zoneId.toString(),
+            'limit': limit.toString(),
+            'offset': offset.toString(),
+          },
+        );
+
+        final response = await http.get(uri);
+
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body);
+          return RestaurantListResponse.fromJson(json);
+        } else {
+          throw Exception('Failed to load restaurants');
+        }
+      }
+    }
+
+    // Usage in UI
+    class RestaurantListScreen extends StatefulWidget {
+      final int zoneId;
+
+      @override
+      _RestaurantListScreenState createState() => _RestaurantListScreenState();
+    }
+
+    class _RestaurantListScreenState extends State<RestaurantListScreen> {
+      final _service = RestaurantService();
+      int _currentPage = 0;
+
+      @override
+      Widget build(BuildContext context) {
+        return FutureBuilder<RestaurantListResponse>(
+          future: _service.fetchLatestRestaurants(
+            zoneId: widget.zoneId,
+            offset: _currentPage * 10,
+          ),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return ListView.builder(
+                itemCount: snapshot.data!.restaurants.length,
+                itemBuilder: (context, index) {
+                  final restaurant = snapshot.data!.restaurants[index];
+                  return RestaurantCard(restaurant: restaurant);
+                },
+              );
+            }
+            return CircularProgressIndicator();
+          },
+        );
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Fetch latest restaurants for zone 1
+    curl -X GET "https://currydash.au/api/v1/restaurants/latest?zone_id=1&limit=10&offset=0" \
+      -H "Accept: application/json"
+
+    # Fetch page 2 (offset = 10)
+    curl -X GET "https://currydash.au/api/v1/restaurants/latest?zone_id=1&limit=10&offset=10" \
+      -H "Accept: application/json"
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+### Restaurant Details
+
+Retrieve comprehensive restaurant information including menu categories, operating hours, and contact details.
+
+#### GET `/api/v1/restaurants/details/{restaurant_id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\RestaurantController@get_details`
+
+**Authentication**: Not required (public)
+
+**Rate Limit**: 60 requests/minute per IP
+
+**URL Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `restaurant_id` | integer | Yes | Unique restaurant identifier |
+
+**Example Request**:
+
+```
+GET /api/v1/restaurants/details/15
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "id": 15,
+  "name": "Lankan Spice House",
+  "phone": "+61398765432",
+  "email": "contact@lankanspicehouse.com.au",
+  "logo": "https://currydash.au/storage/restaurant/logo_15.jpg",
+  "cover_photo": "https://currydash.au/storage/restaurant/cover_15.jpg",
+  "address": "123 Church St, Richmond VIC 3121",
+  "latitude": -37.8236,
+  "longitude": 145.0012,
+  "zone_id": 1,
+  "zone_name": "Melbourne CBD",
+  "rating": 4.7,
+  "rating_count": 342,
+  "cuisine": ["Sri Lankan", "Indian"],
+  "description": "Authentic Sri Lankan and Indian cuisine with family curry packs and traditional recipes.",
+  "delivery_time": "30-40 min",
+  "minimum_order": 25.00,
+  "free_delivery": false,
+  "delivery_charge": 5.00,
+  "tax": 10.0,
+  "open": true,
+  "available_for_delivery": true,
+  "available_for_pickup": true,
+  "opening_hours": {
+    "Monday": "11:00 AM - 10:00 PM",
+    "Tuesday": "11:00 AM - 10:00 PM",
+    "Wednesday": "11:00 AM - 10:00 PM",
+    "Thursday": "11:00 AM - 10:00 PM",
+    "Friday": "11:00 AM - 11:00 PM",
+    "Saturday": "12:00 PM - 11:00 PM",
+    "Sunday": "12:00 PM - 10:00 PM"
+  },
+  "categories": [
+    {
+      "id": 3,
+      "name": "Curry Packs",
+      "items_count": 12
+    },
+    {
+      "id": 5,
+      "name": "Individual Curries",
+      "items_count": 18
+    },
+    {
+      "id": 7,
+      "name": "Rice & Breads",
+      "items_count": 8
+    }
+  ],
+  "featured": true,
+  "created_at": "2025-10-15T08:30:00.000000Z",
+  "updated_at": "2025-12-10T14:20:00.000000Z"
+}
+```
+
+**Response Fields**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Unique restaurant identifier |
+| `name` | string | Restaurant name |
+| `phone` | string | Contact phone number (Australian format) |
+| `email` | string | Contact email address |
+| `logo` | string | URL to restaurant logo image |
+| `cover_photo` | string | URL to restaurant cover/banner image |
+| `address` | string | Full street address |
+| `latitude` | float | Geographic latitude coordinate |
+| `longitude` | float | Geographic longitude coordinate |
+| `zone_id` | integer | Service zone identifier |
+| `zone_name` | string | Service zone name |
+| `rating` | float | Average rating (0-5 scale) |
+| `rating_count` | integer | Total number of ratings |
+| `cuisine` | array | List of cuisine types |
+| `description` | string | Restaurant description text |
+| `delivery_time` | string | Estimated delivery time range |
+| `minimum_order` | float | Minimum order amount (AUD) |
+| `free_delivery` | boolean | Free delivery offer status |
+| `delivery_charge` | float | Delivery fee (AUD) |
+| `tax` | float | Tax percentage applied to orders |
+| `open` | boolean | Current open/closed status |
+| `available_for_delivery` | boolean | Delivery service availability |
+| `available_for_pickup` | boolean | Pickup service availability |
+| `opening_hours` | object | Daily operating hours (day: time_range) |
+| `categories` | array | Menu categories with item counts |
+| `featured` | boolean | Featured restaurant status |
+| `created_at` | timestamp | Restaurant creation timestamp |
+| `updated_at` | timestamp | Last modification timestamp |
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "restaurant-001",
+      "message": "Restaurant not found"
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  **Operating Hours**: The `open` field reflects real-time status based on current time and `opening_hours` schedule. A restaurant with `open: false` will not accept orders.
+</Callout>
+
+**Business Logic**:
+
+<Steps>
+
+### Restaurant Lookup
+
+Query restaurant by `id` where `status = 1` (active) and `approved = 1`.
+
+### Load Related Data
+
+Eager load:
+- Zone information
+- Menu categories with item counts
+- Average rating calculation
+- Total rating count
+
+### Calculate Open Status
+
+Check current server time against `opening_hours` to determine `open` status.
+
+### Format Opening Hours
+
+Convert database schedule format to human-readable day/time pairs.
+
+### Response Formation
+
+Serialize complete restaurant profile with all metadata and relationships.
+
+</Steps>
+
+**Client Implementation Example**:
+
+<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```javascript
+    // Fetch restaurant details
+    const loadRestaurantDetails = async (restaurantId) => {
+      try {
+        const response = await fetch(
+          `https://currydash.au/api/v1/restaurants/details/${restaurantId}`
+        );
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('Restaurant not found');
+          }
+          throw new Error('Failed to load restaurant');
+        }
+
+        const restaurant = await response.json();
+
+        // Display restaurant info
+        console.log(`${restaurant.name}`);
+        console.log(`Rating: ${restaurant.rating} ⭐ (${restaurant.rating_count} reviews)`);
+        console.log(`Status: ${restaurant.open ? 'Open Now' : 'Closed'}`);
+        console.log(`Delivery Time: ${restaurant.delivery_time}`);
+        console.log(`Min Order: $${restaurant.minimum_order}`);
+
+        // Display menu categories
+        console.log('\nMenu Categories:');
+        restaurant.categories.forEach(cat => {
+          console.log(`- ${cat.name} (${cat.items_count} items)`);
+        });
+
+        return restaurant;
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    };
+
+    // Usage
+    loadRestaurantDetails(15);
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    // Flutter - Fetch restaurant details
+    import 'package:http/http.dart' as http;
+    import 'dart:convert';
+
+    class RestaurantService {
+      static const String baseUrl = 'https://currydash.au/api/v1';
+
+      Future<Restaurant> fetchRestaurantDetails(int restaurantId) async {
+        final response = await http.get(
+          Uri.parse('$baseUrl/restaurants/details/$restaurantId'),
+        );
+
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body);
+          return Restaurant.fromJson(json);
+        } else if (response.statusCode == 404) {
+          throw Exception('Restaurant not found');
+        } else {
+          throw Exception('Failed to load restaurant details');
+        }
+      }
+    }
+
+    // Usage in UI
+    class RestaurantDetailScreen extends StatelessWidget {
+      final int restaurantId;
+      final _service = RestaurantService();
+
+      RestaurantDetailScreen({required this.restaurantId});
+
+      @override
+      Widget build(BuildContext context) {
+        return Scaffold(
+          body: FutureBuilder<Restaurant>(
+            future: _service.fetchRestaurantDetails(restaurantId),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+
+              if (!snapshot.hasData) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              final restaurant = snapshot.data!;
+
+              return CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    expandedHeight: 200,
+                    flexibleSpace: FlexibleSpaceBar(
+                      title: Text(restaurant.name),
+                      background: Image.network(
+                        restaurant.coverPhoto,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        RestaurantInfoCard(restaurant: restaurant),
+                        MenuCategoriesSection(categories: restaurant.categories),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Fetch restaurant details
+    curl -X GET "https://currydash.au/api/v1/restaurants/details/15" \
+      -H "Accept: application/json"
+
+    # Pretty print with jq
+    curl -X GET "https://currydash.au/api/v1/restaurants/details/15" \
+      -H "Accept: application/json" | jq '.'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+### Search Restaurants
+
+Search and filter restaurants by name, cuisine type, or dish with support for full-text search.
+
+#### GET `/api/v1/restaurants/search`
+
+**Controller**: `App\Http\Controllers\Api\V1\RestaurantController@search`
+
+**Authentication**: Not required (public)
+
+**Rate Limit**: 60 requests/minute per IP
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `zone_id` | integer | Yes | Zone ID for filtering results by delivery area |
+| `query` | string | Yes | Search query (min 2 characters) |
+| `limit` | integer | No | Number of results per page (default: 10, max: 50) |
+| `offset` | integer | No | Pagination offset (default: 0) |
+| `filter_by` | string | No | Filter type: `name`, `cuisine`, `dish` (default: `all`) |
+
+**Example Requests**:
+
+```
+GET /api/v1/restaurants/search?zone_id=1&query=curry
+GET /api/v1/restaurants/search?zone_id=1&query=sri%20lankan&filter_by=cuisine
+GET /api/v1/restaurants/search?zone_id=1&query=chicken&filter_by=dish
+```
+
+**Validation Rules**:
+
+```php
+[
+    'zone_id' => 'required|integer|exists:zones,id',
+    'query' => 'required|string|min:2|max:100',
+    'limit' => 'nullable|integer|min:1|max:50',
+    'offset' => 'nullable|integer|min:0',
+    'filter_by' => 'nullable|string|in:all,name,cuisine,dish',
+]
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "total_size": 8,
+  "limit": 10,
+  "offset": 0,
+  "query": "curry",
+  "filter_by": "all",
+  "restaurants": [
+    {
+      "id": 15,
+      "name": "Lankan Spice House",
+      "logo": "https://currydash.au/storage/restaurant/logo_15.jpg",
+      "cuisine": ["Sri Lankan", "Indian"],
+      "rating": 4.7,
+      "rating_count": 342,
+      "delivery_time": "30-40 min",
+      "minimum_order": 25.00,
+      "free_delivery": false,
+      "delivery_charge": 5.00,
+      "distance": 2.3,
+      "open": true,
+      "match_type": "name"
+    },
+    {
+      "id": 16,
+      "name": "Curry King Melbourne",
+      "logo": "https://currydash.au/storage/restaurant/logo_16.jpg",
+      "cuisine": ["Indian", "Pakistani"],
+      "rating": 4.5,
+      "rating_count": 218,
+      "delivery_time": "25-35 min",
+      "minimum_order": 20.00,
+      "free_delivery": true,
+      "delivery_charge": 0.00,
+      "distance": 1.8,
+      "open": true,
+      "match_type": "name"
+    }
+  ]
+}
+```
+
+**Response Fields**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_size` | integer | Total matching results |
+| `limit` | integer | Results per page |
+| `offset` | integer | Current pagination offset |
+| `query` | string | Search query used |
+| `filter_by` | string | Applied filter type |
+| `restaurants` | array | Array of matching restaurants (same structure as `/latest`) |
+| `restaurants[].match_type` | string | Type of match: `name`, `cuisine`, or `dish` |
+
+**Error Response** (422 Unprocessable Entity):
+
+```json
+{
+  "errors": [
+    {
+      "code": "validation-001",
+      "message": "The query must be at least 2 characters.",
+      "field": "query"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  **Search Algorithm**: The search uses full-text indexing for restaurant names, cuisine types, and menu items. Results are ranked by relevance score and filtered by `zone_id`.
+</Callout>
+
+**Business Logic**:
+
+<Steps>
+
+### Validate Input
+
+Ensure `zone_id` exists, `query` meets minimum length, and `filter_by` is valid.
+
+### Build Search Query
+
+Based on `filter_by`:
+- `all`: Search across restaurant names, cuisine types, and menu items
+- `name`: Search restaurant names only
+- `cuisine`: Filter by cuisine type
+- `dish`: Search menu item names and descriptions
+
+### Apply Zone Filter
+
+Restrict results to restaurants in specified `zone_id`.
+
+### Apply Status Filters
+
+Include only active restaurants (`status = 1`, `approved = 1`).
+
+### Rank Results
+
+Order by relevance score (full-text search ranking).
+
+### Pagination
+
+Apply `limit` and `offset` for paginated results.
+
+### Add Match Type
+
+Tag each result with `match_type` indicating where the match was found.
+
+</Steps>
+
+**Client Implementation Example**:
+
+<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```javascript
+    // Search restaurants
+    const searchRestaurants = async (zoneId, query, filterBy = 'all') => {
+      try {
+        const params = new URLSearchParams({
+          zone_id: zoneId,
+          query: query,
+          filter_by: filterBy,
+          limit: 10,
+          offset: 0
+        });
+
+        const response = await fetch(
+          `https://currydash.au/api/v1/restaurants/search?${params}`
+        );
+
+        const data = await response.json();
+
+        console.log(`Found ${data.total_size} restaurants matching "${query}"`);
+
+        data.restaurants.forEach(restaurant => {
+          console.log(`- ${restaurant.name} (${restaurant.match_type} match)`);
+        });
+
+        return data;
+      } catch (error) {
+        console.error('Search failed:', error);
+      }
+    };
+
+    // Usage examples
+    searchRestaurants(1, 'curry');  // Search all
+    searchRestaurants(1, 'sri lankan', 'cuisine');  // Filter by cuisine
+    searchRestaurants(1, 'chicken', 'dish');  // Search dishes
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    // Flutter - Search restaurants
+    class RestaurantService {
+      static const String baseUrl = 'https://currydash.au/api/v1';
+
+      Future<RestaurantListResponse> searchRestaurants({
+        required int zoneId,
+        required String query,
+        String filterBy = 'all',
+        int limit = 10,
+        int offset = 0,
+      }) async {
+        final uri = Uri.parse('$baseUrl/restaurants/search').replace(
+          queryParameters: {
+            'zone_id': zoneId.toString(),
+            'query': query,
+            'filter_by': filterBy,
+            'limit': limit.toString(),
+            'offset': offset.toString(),
+          },
+        );
+
+        final response = await http.get(uri);
+
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body);
+          return RestaurantListResponse.fromJson(json);
+        } else {
+          throw Exception('Search failed');
+        }
+      }
+    }
+
+    // Usage in search screen
+    class RestaurantSearchDelegate extends SearchDelegate<Restaurant> {
+      final int zoneId;
+      final RestaurantService _service = RestaurantService();
+
+      RestaurantSearchDelegate({required this.zoneId});
+
+      @override
+      Widget buildResults(BuildContext context) {
+        if (query.length < 2) {
+          return Center(child: Text('Enter at least 2 characters'));
+        }
+
+        return FutureBuilder<RestaurantListResponse>(
+          future: _service.searchRestaurants(
+            zoneId: zoneId,
+            query: query,
+          ),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              final results = snapshot.data!.restaurants;
+
+              if (results.isEmpty) {
+                return Center(child: Text('No restaurants found'));
+              }
+
+              return ListView.builder(
+                itemCount: results.length,
+                itemBuilder: (context, index) {
+                  return RestaurantSearchResultTile(
+                    restaurant: results[index],
+                  );
+                },
+              );
+            }
+
+            return Center(child: CircularProgressIndicator());
+          },
+        );
+      }
+
+      @override
+      Widget buildSuggestions(BuildContext context) {
+        // Show search suggestions or recent searches
+        return buildResults(context);
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Search all restaurants matching "curry"
+    curl -X GET "https://currydash.au/api/v1/restaurants/search?zone_id=1&query=curry" \
+      -H "Accept: application/json"
+
+    # Search by cuisine type
+    curl -X GET "https://currydash.au/api/v1/restaurants/search?zone_id=1&query=sri%20lankan&filter_by=cuisine" \
+      -H "Accept: application/json"
+
+    # Search for specific dish
+    curl -X GET "https://currydash.au/api/v1/restaurants/search?zone_id=1&query=chicken&filter_by=dish" \
+      -H "Accept: application/json"
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+## Integration Workflows
+
+### Complete Restaurant Discovery Flow
+
+<Steps>
+
+### Load Service Zones
+
+Call `GET /api/v1/zone/list` to retrieve available zones.
+
+### Check User Location
+
+Call `GET /api/v1/zone/check?lat={lat}&lng={lng}` to determine user's zone.
+
+### Fetch Latest Restaurants
+
+Call `GET /api/v1/restaurants/latest?zone_id={zone_id}` to display restaurants.
+
+### User Selects Restaurant
+
+Call `GET /api/v1/restaurants/details/{id}` to show full restaurant profile.
+
+### Load Menu
+
+Proceed to fetch packages/menu items for selected restaurant.
+
+</Steps>
+
+### Search Integration
+
+```javascript
+// Complete search integration example
+class RestaurantSearchService {
+  constructor(baseUrl = 'https://currydash.au/api/v1') {
+    this.baseUrl = baseUrl;
+    this.zoneId = null;
+  }
+
+  // Initialize with zone detection
+  async initialize(userLat, userLng) {
+    const zoneResponse = await fetch(
+      `${this.baseUrl}/zone/check?lat=${userLat}&lng=${userLng}`
+    );
+    const zoneData = await zoneResponse.json();
+    this.zoneId = zoneData.zone_id;
+  }
+
+  // Search with auto-suggest
+  async search(query, filterBy = 'all') {
+    if (!this.zoneId) {
+      throw new Error('Zone not initialized');
+    }
+
+    if (query.length < 2) {
+      return { restaurants: [] };
+    }
+
+    const params = new URLSearchParams({
+      zone_id: this.zoneId,
+      query,
+      filter_by: filterBy
+    });
+
+    const response = await fetch(
+      `${this.baseUrl}/restaurants/search?${params}`
+    );
+
+    return await response.json();
+  }
+
+  // Get restaurant details
+  async getDetails(restaurantId) {
+    const response = await fetch(
+      `${this.baseUrl}/restaurants/details/${restaurantId}`
+    );
+    return await response.json();
+  }
+}
+
+// Usage
+const searchService = new RestaurantSearchService();
+
+// Initialize with user location
+await searchService.initialize(-37.8136, 144.9631);
+
+// Perform search
+const results = await searchService.search('curry');
+
+// Get details for selected restaurant
+const restaurant = await searchService.getDetails(results.restaurants[0].id);
+```
+
+---
+
+## Performance Optimization
+
+### Caching Strategy
+
+<Callout type="info">
+  **Recommended Cache TTLs**:
+  - Latest restaurants list: 5 minutes
+  - Restaurant details: 15 minutes
+  - Search results: 3 minutes
+  - Zone data: 1 hour
+</Callout>
+
+### Request Optimization
+
+```javascript
+// Prefetch restaurant details when scrolling
+const prefetchRestaurantDetails = (restaurantIds) => {
+  restaurantIds.forEach(id => {
+    // Use low-priority fetch
+    fetch(`https://currydash.au/api/v1/restaurants/details/${id}`, {
+      priority: 'low'
+    }).then(response => response.json())
+      .then(data => {
+        // Cache in local storage or state
+        localStorage.setItem(`restaurant_${id}`, JSON.stringify(data));
+      });
+  });
+};
+
+// Debounce search requests
+const debouncedSearch = debounce((query) => {
+  searchRestaurants(zoneId, query);
+}, 300);
+```
+
+---
+
+## Error Handling
+
+### Common Error Scenarios
+
+| Error Code | HTTP Status | Cause | Resolution |
+|------------|-------------|-------|------------|
+| `zone-001` | 404 | Invalid or inactive zone | Verify zone_id exists and is active |
+| `restaurant-001` | 404 | Restaurant not found | Check restaurant_id is valid |
+| `validation-001` | 422 | Invalid query parameters | Review validation rules |
+| `rate-limit-001` | 429 | Too many requests | Implement rate limiting on client |
+| `server-001` | 500 | Internal server error | Retry with exponential backoff |
+
+### Error Handling Example
+
+```javascript
+const handleRestaurantRequest = async (endpoint) => {
+  try {
+    const response = await fetch(`https://currydash.au/api/v1${endpoint}`);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      const error = errorData.errors[0];
+
+      switch (error.code) {
+        case 'zone-001':
+          throw new Error('Service not available in your area');
+        case 'restaurant-001':
+          throw new Error('Restaurant not found or no longer available');
+        case 'rate-limit-001':
+          throw new Error('Too many requests. Please wait a moment.');
+        default:
+          throw new Error(error.message || 'An error occurred');
+      }
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Restaurant request failed:', error);
+    // Show user-friendly error message
+    showErrorNotification(error.message);
+  }
+};
+```
+
+---
+
+## Related Documentation
+
+- **[Backend API Overview](/api/backend)**: Complete API reference and standards
+- **[Zone Endpoints](/api/backend/zones)**: Zone detection and filtering
+- **[Authentication](/api/backend/authentication)**: JWT authentication for protected endpoints
+- **[Restaurant Architecture](/developers/backend/architecture/restaurant-system-architecture)**: Restaurant data model and system structure
+- **[Business Logic - Restaurant Rules](/developers/backend/architecture/service-layer-business-logic#restaurant-management)**: Restaurant approval and validation rules
+
+---
+
+**API Version**: v1.0
+**Last Updated**: 2025-01-22
+**Maintainer**: CurryDash Backend Team

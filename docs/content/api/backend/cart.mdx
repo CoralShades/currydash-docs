@@ -1,0 +1,808 @@
+---
+title: Cart Endpoints
+description: Shopping cart management endpoints for adding, viewing, updating, and removing items from customer carts
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Cart Endpoints
+
+Protected endpoints for managing customer shopping carts, including regular food items and customizable packages.
+
+<Callout type="warning">
+  Cart endpoints require **authentication** with a valid JWT token. All cart operations are user-specific and isolated per customer.
+</Callout>
+
+## Overview
+
+The CurryDash Cart System provides:
+
+- **Multi-Item Support**: Add regular food items and customizable packages to cart
+- **Quantity Management**: Update item quantities before checkout
+- **Real-time Totals**: Automatic calculation of subtotals, taxes, and delivery charges
+- **Package Validation**: Server-side validation of package configuration choices
+- **Session Persistence**: Cart items persist across sessions until checkout or manual removal
+
+### Use Cases
+
+| Use Case | Endpoint | Purpose |
+|----------|----------|---------|
+| Add Regular Food | `POST /cart` | Add standard menu item to cart |
+| Add Package | `POST /cart/package` | Add customized package to cart |
+| View Cart | `GET /cart` | Retrieve current cart contents |
+| Update Quantity | `PUT /cart/{cart_id}` | Modify item quantity |
+| Remove Item | `DELETE /cart/{cart_id}` | Remove item from cart |
+| Clear Cart | `DELETE /cart/clear` | Empty entire cart |
+
+---
+
+## Endpoints
+
+### Add Regular Food to Cart
+
+Add a standard menu item (non-package) to the shopping cart.
+
+#### POST `/api/v1/cart`
+
+**Controller**: `App\Http\Controllers\Api\V1\CartController@add`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**Request Body**:
+
+```json
+{
+  "food_id": 10,
+  "quantity": 2,
+  "add_ons": [
+    {
+      "id": 5,
+      "quantity": 1
+    }
+  ],
+  "variation": [
+    {
+      "type": "size",
+      "value": "large"
+    }
+  ]
+}
+```
+
+**Request Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `food_id` | integer | Yes | Unique food item identifier |
+| `quantity` | integer | Yes | Number of items (1-10) |
+| `add_ons` | array | No | Optional add-ons (extras) |
+| `add_ons.*.id` | integer | Yes | Add-on identifier |
+| `add_ons.*.quantity` | integer | Yes | Add-on quantity |
+| `variation` | array | No | Item variations (size, spice level) |
+| `variation.*.type` | string | Yes | Variation type |
+| `variation.*.value` | string | Yes | Selected variation value |
+
+**Validation Rules**:
+
+```php
+[
+    'food_id' => 'required|exists:food,id',
+    'quantity' => 'required|integer|min:1|max:10',
+    'add_ons' => 'nullable|array',
+    'add_ons.*.id' => 'required|exists:add_ons,id',
+    'add_ons.*.quantity' => 'required|integer|min:1',
+    'variation' => 'nullable|array',
+]
+```
+
+**Success Response** (201 Created):
+
+```json
+{
+  "message": "Item added to cart successfully",
+  "cart_item": {
+    "id": 123,
+    "food_id": 10,
+    "food_name": "Chicken Curry",
+    "food_image": "https://currydash.au/storage/food/chicken_curry.jpg",
+    "quantity": 2,
+    "item_price": 14.00,
+    "add_ons": [
+      {
+        "id": 5,
+        "name": "Extra Rice",
+        "price": 3.00,
+        "quantity": 1
+      }
+    ],
+    "variation": [
+      {
+        "type": "size",
+        "value": "large"
+      }
+    ],
+    "total_price": 34.00
+  },
+  "cart_summary": {
+    "items_count": 3,
+    "subtotal": 125.50,
+    "delivery_charge": 5.00,
+    "tax": 13.05,
+    "total": 143.55
+  }
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "cart-001",
+      "message": "Food item not found or unavailable"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request):
+
+```json
+{
+  "errors": [
+    {
+      "code": "cart-002",
+      "message": "Cannot add items from different restaurants. Please clear cart first."
+    }
+  ]
+}
+```
+
+---
+
+### Add Package to Cart
+
+Add a customized package to the shopping cart with validated configuration options.
+
+#### POST `/api/v1/cart/package`
+
+**Controller**: `App\Http\Controllers\Api\V1\CartController@add_package`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**Request Body**:
+
+```json
+{
+  "package_id": 1,
+  "quantity": 1,
+  "selected_options": [
+    {"option_id": 1},
+    {"option_id": 2},
+    {"option_id": 5}
+  ]
+}
+```
+
+**Request Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `package_id` | integer | Yes | Unique package identifier |
+| `quantity` | integer | Yes | Number of packages (1-10) |
+| `selected_options` | array | Yes | Selected configuration options |
+| `selected_options.*.option_id` | integer | Yes | Package option identifier |
+
+**Validation Rules**:
+
+```php
+[
+    'package_id' => 'required|exists:packages,id',
+    'quantity' => 'required|integer|min:1|max:10',
+    'selected_options' => 'required|array|min:1',
+    'selected_options.*.option_id' => 'required|exists:package_options,id',
+]
+```
+
+**Server-Side Validation Logic**:
+
+<Steps>
+
+### Validate Package Status
+
+```php
+$package = Package::active()->findOrFail($request->package_id);
+```
+
+### Load Package Configurations
+
+```php
+$configurations = $package->configurations()->with('options')->get();
+```
+
+### Group Selected Options
+
+```php
+$selectedByConfig = [];
+foreach ($request->selected_options as $selection) {
+    $option = PackageOption::findOrFail($selection['option_id']);
+    $configId = $option->package_configuration_id;
+    $selectedByConfig[$configId][] = $option;
+}
+```
+
+### Validate Min/Max Choices
+
+```php
+foreach ($configurations as $config) {
+    $selectedCount = count($selectedByConfig[$config->id] ?? []);
+
+    if ($selectedCount < $config->min_choices) {
+        return error("Min choices not met");
+    }
+
+    if ($selectedCount > $config->max_choices) {
+        return error("Max choices exceeded");
+    }
+}
+```
+
+### Calculate Total Price
+
+```php
+$totalPrice = $package->base_price;
+foreach ($request->selected_options as $selection) {
+    $option = PackageOption::find($selection['option_id']);
+    $totalPrice += $option->additional_charge;
+}
+```
+
+</Steps>
+
+**Success Response** (201 Created):
+
+```json
+{
+  "message": "Package added to cart successfully",
+  "cart_item": {
+    "id": 456,
+    "package_id": 1,
+    "package_name": "Family Curry Pack",
+    "package_image": "https://currydash.au/storage/packages/pack_1.jpg",
+    "quantity": 1,
+    "item_price": 50.00,
+    "total_price": 50.00,
+    "selected_options": [
+      {
+        "option_id": 1,
+        "food_name": "Chicken Curry",
+        "additional_charge": 0.00
+      },
+      {
+        "option_id": 2,
+        "food_name": "Lamb Curry",
+        "additional_charge": 5.00
+      },
+      {
+        "option_id": 5,
+        "food_name": "Medium",
+        "additional_charge": 0.00
+      }
+    ]
+  },
+  "cart_summary": {
+    "items_count": 3,
+    "subtotal": 125.50,
+    "delivery_charge": 5.00,
+    "tax": 13.05,
+    "total": 143.55
+  }
+}
+```
+
+**Error Response** (422 Unprocessable Entity):
+
+```json
+{
+  "errors": [
+    {
+      "code": "package-001",
+      "message": "Please select at least 2 options for 'Choose your protein (Select 2-3)'"
+    }
+  ]
+}
+```
+
+**Error Response** (422 Unprocessable Entity):
+
+```json
+{
+  "errors": [
+    {
+      "code": "package-002",
+      "message": "You can select maximum 3 options for 'Choose your protein (Select 2-3)'"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  **Pricing Logic**: Total price = `base_price` + sum of all `additional_charge` values from selected options.
+
+  Example: Base $45.00 + Chicken $0.00 + Lamb $5.00 + Medium $0.00 = **$50.00**
+</Callout>
+
+---
+
+### View Cart
+
+Retrieve all items currently in the customer's shopping cart with calculated totals.
+
+#### GET `/api/v1/cart`
+
+**Controller**: `App\Http\Controllers\Api\V1\CartController@index`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**Query Parameters**: None
+
+**Example Request**:
+
+```
+GET /api/v1/cart
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "cart_items": [
+    {
+      "id": 123,
+      "type": "food",
+      "food_id": 10,
+      "food": {
+        "id": 10,
+        "name": "Chicken Curry",
+        "description": "Tender chicken in Sri Lankan spices",
+        "image": "https://currydash.au/storage/food/chicken_curry.jpg",
+        "price": 14.00,
+        "restaurant_id": 15,
+        "restaurant_name": "Lankan Spice House"
+      },
+      "quantity": 2,
+      "add_ons": [
+        {
+          "id": 5,
+          "name": "Extra Rice",
+          "price": 3.00,
+          "quantity": 1
+        }
+      ],
+      "variation": [
+        {
+          "type": "size",
+          "value": "large"
+        }
+      ],
+      "item_price": 14.00,
+      "add_ons_price": 3.00,
+      "total_price": 34.00
+    },
+    {
+      "id": 456,
+      "type": "package",
+      "package_id": 1,
+      "package": {
+        "id": 1,
+        "name": "Family Curry Pack",
+        "description": "Perfect for 4 people",
+        "image": "https://currydash.au/storage/packages/pack_1.jpg",
+        "base_price": 45.00,
+        "restaurant_id": 15,
+        "restaurant_name": "Lankan Spice House"
+      },
+      "quantity": 1,
+      "selected_options": [
+        {
+          "option_id": 1,
+          "food_name": "Chicken Curry",
+          "additional_charge": 0.00
+        },
+        {
+          "option_id": 2,
+          "food_name": "Lamb Curry",
+          "additional_charge": 5.00
+        }
+      ],
+      "item_price": 50.00,
+      "total_price": 50.00
+    }
+  ],
+  "cart_summary": {
+    "restaurant_id": 15,
+    "restaurant_name": "Lankan Spice House",
+    "items_count": 2,
+    "total_items": 3,
+    "subtotal": 84.00,
+    "delivery_charge": 5.00,
+    "tax": 8.90,
+    "discount": 0.00,
+    "total": 97.90
+  }
+}
+```
+
+**Response Fields**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `cart_items` | array | List of all cart items |
+| `cart_items[].id` | integer | Cart item ID (for updates/deletes) |
+| `cart_items[].type` | string | Item type: "food" or "package" |
+| `cart_items[].quantity` | integer | Number of items |
+| `cart_items[].item_price` | decimal | Unit price (including options/add-ons) |
+| `cart_items[].total_price` | decimal | Line total (item_price × quantity) |
+| `cart_summary` | object | Cart totals and calculations |
+| `cart_summary.items_count` | integer | Unique items in cart |
+| `cart_summary.total_items` | integer | Total quantity across all items |
+| `cart_summary.subtotal` | decimal | Sum of all item totals |
+| `cart_summary.delivery_charge` | decimal | Calculated delivery fee |
+| `cart_summary.tax` | decimal | Tax amount (GST 10%) |
+| `cart_summary.total` | decimal | Final payable amount |
+
+**Empty Cart Response** (200 OK):
+
+```json
+{
+  "cart_items": [],
+  "cart_summary": {
+    "restaurant_id": null,
+    "restaurant_name": null,
+    "items_count": 0,
+    "total_items": 0,
+    "subtotal": 0.00,
+    "delivery_charge": 0.00,
+    "tax": 0.00,
+    "discount": 0.00,
+    "total": 0.00
+  }
+}
+```
+
+---
+
+### Update Cart Item
+
+Update the quantity of an existing cart item.
+
+#### PUT `/api/v1/cart/{cart_id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\CartController@update`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**URL Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `cart_id` | integer | Yes | Cart item identifier |
+
+**Request Body**:
+
+```json
+{
+  "quantity": 3
+}
+```
+
+**Request Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `quantity` | integer | Yes | New quantity (1-10) |
+
+**Validation Rules**:
+
+```php
+[
+    'quantity' => 'required|integer|min:1|max:10',
+]
+```
+
+**Example Request**:
+
+```
+PUT /api/v1/cart/123
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+
+{
+  "quantity": 3
+}
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Cart item updated successfully",
+  "cart_item": {
+    "id": 123,
+    "food_id": 10,
+    "food_name": "Chicken Curry",
+    "quantity": 3,
+    "item_price": 14.00,
+    "total_price": 42.00
+  },
+  "cart_summary": {
+    "items_count": 3,
+    "subtotal": 150.50,
+    "delivery_charge": 5.00,
+    "tax": 15.55,
+    "total": 171.05
+  }
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "cart-003",
+      "message": "Cart item not found"
+    }
+  ]
+}
+```
+
+**Error Response** (403 Forbidden):
+
+```json
+{
+  "errors": [
+    {
+      "code": "cart-004",
+      "message": "Unauthorized to modify this cart item"
+    }
+  ]
+}
+```
+
+---
+
+### Remove Cart Item
+
+Remove a specific item from the shopping cart.
+
+#### DELETE `/api/v1/cart/{cart_id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\CartController@destroy`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**URL Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `cart_id` | integer | Yes | Cart item identifier |
+
+**Example Request**:
+
+```
+DELETE /api/v1/cart/123
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Item removed from cart successfully",
+  "cart_summary": {
+    "items_count": 2,
+    "subtotal": 116.50,
+    "delivery_charge": 5.00,
+    "tax": 12.15,
+    "total": 133.65
+  }
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "cart-003",
+      "message": "Cart item not found"
+    }
+  ]
+}
+```
+
+**Error Response** (403 Forbidden):
+
+```json
+{
+  "errors": [
+    {
+      "code": "cart-004",
+      "message": "Unauthorized to remove this cart item"
+    }
+  ]
+}
+```
+
+---
+
+### Clear Cart
+
+Remove all items from the shopping cart.
+
+#### DELETE `/api/v1/cart/clear`
+
+**Controller**: `App\Http\Controllers\Api\V1\CartController@clear`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**Example Request**:
+
+```
+DELETE /api/v1/cart/clear
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Cart cleared successfully",
+  "cart_summary": {
+    "items_count": 0,
+    "total_items": 0,
+    "subtotal": 0.00,
+    "delivery_charge": 0.00,
+    "tax": 0.00,
+    "total": 0.00
+  }
+}
+```
+
+---
+
+## Business Rules
+
+### Restaurant Restriction
+
+<Callout type="warning">
+  Customers can only add items from **one restaurant at a time**. Adding items from a different restaurant requires clearing the existing cart first.
+</Callout>
+
+**Validation Logic**:
+
+```php
+$existingCart = Cart::where('user_id', auth('api')->id())->first();
+
+if ($existingCart && $existingCart->restaurant_id !== $newItem->restaurant_id) {
+    return response()->json([
+        'errors' => [
+            [
+                'code' => 'cart-002',
+                'message' => 'Cannot add items from different restaurants. Please clear cart first.',
+                'current_restaurant' => $existingCart->restaurant_name
+            ]
+        ]
+    ], 400);
+}
+```
+
+### Price Calculation
+
+**Regular Food Items**:
+```
+item_price = food.price + sum(add_ons.price × add_ons.quantity)
+total_price = item_price × quantity
+```
+
+**Package Items**:
+```
+item_price = package.base_price + sum(selected_options.additional_charge)
+total_price = item_price × quantity
+```
+
+**Cart Totals**:
+```
+subtotal = sum(cart_items.total_price)
+tax = subtotal × 0.10  // 10% GST
+delivery_charge = calculated based on distance
+total = subtotal + tax + delivery_charge - discount
+```
+
+### Quantity Limits
+
+- Minimum quantity: **1**
+- Maximum quantity per item: **10**
+- Maximum unique items in cart: **20**
+
+### Cart Persistence
+
+- Cart items persist across user sessions
+- Cart is automatically cleared after successful order placement
+- Inactive carts (30+ days) are automatically purged
+
+---
+
+## Error Codes
+
+| Error Code | Description | HTTP Status |
+|------------|-------------|-------------|
+| **cart-001** | Food item not found or unavailable | 404 |
+| **cart-002** | Cannot mix items from different restaurants | 400 |
+| **cart-003** | Cart item not found | 404 |
+| **cart-004** | Unauthorized cart access | 403 |
+| **cart-005** | Quantity exceeds maximum limit | 422 |
+| **cart-006** | Invalid add-on or variation | 422 |
+| **package-001** | Minimum option choices not met | 422 |
+| **package-002** | Maximum option choices exceeded | 422 |
+
+---
+
+## Best Practices
+
+### For Mobile/Web Developers
+
+<Steps>
+
+### Add Items with Validation
+
+Always validate package configurations client-side before submission, but rely on server-side validation for final verification.
+
+### Update Cart Summary
+
+After every cart operation (add/update/remove), update the UI with the returned `cart_summary` to reflect accurate totals.
+
+### Handle Restaurant Switching
+
+When adding items from a different restaurant, prompt the user with a confirmation dialog to clear the existing cart.
+
+### Persist Cart State
+
+Cache cart items locally and sync with the server on app launch or after authentication.
+
+### Show Loading States
+
+Display loading indicators during cart operations to improve perceived performance.
+
+</Steps>
+
+---
+
+## Related Documentation
+
+- [Package System Endpoints](/api/backend/packages) - Package browsing and configuration
+- [Order Endpoints](/api/backend/orders) - Checkout and order placement
+- [Authentication](/api/backend/authentication) - JWT token management
+- [Architecture: Order System](/developers/backend/architecture/order-system-architecture) - Cart and order implementation details
+
+---
+
+**Version**: v1.0
+**Last Updated**: 2025-01-22
+**Maintainer**: CurryDash Backend Team

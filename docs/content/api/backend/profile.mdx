@@ -1,0 +1,845 @@
+---
+title: User Profile
+description: User profile management endpoints including profile CRUD, address management, and payment methods
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# User Profile
+
+User profile management endpoints for viewing and updating customer information, managing delivery addresses, and payment methods.
+
+<Callout type="info">
+  All profile endpoints require authentication via JWT token with `auth:api` guard.
+</Callout>
+
+## Overview
+
+The CurryDash user profile system provides:
+
+- **Profile Management**: View and update customer profile information
+- **Address Management**: CRUD operations for delivery addresses
+- **Payment Methods**: Manage saved payment cards and methods
+- **Image Upload**: Profile picture management with validation
+- **Account Settings**: Notification preferences and privacy settings
+
+### Profile Features
+
+| Feature | Endpoint | Description |
+|---------|----------|-------------|
+| Get Profile | `GET /api/v1/customer/info` | Retrieve authenticated user profile |
+| Update Profile | `POST /api/v1/customer/update-profile` | Update profile information |
+| Update Image | `POST /api/v1/customer/update-profile` | Upload profile picture |
+| Delete Account | `DELETE /api/v1/customer/remove-account` | Permanently delete account |
+
+### Address Management
+
+| Feature | Endpoint | Description |
+|---------|----------|-------------|
+| List Addresses | `GET /api/v1/customer/address/list` | Get all saved addresses |
+| Add Address | `POST /api/v1/customer/address/add` | Create new delivery address |
+| Update Address | `PUT /api/v1/customer/address/update/{id}` | Update existing address |
+| Delete Address | `DELETE /api/v1/customer/address/delete` | Remove saved address |
+
+---
+
+## Profile Endpoints
+
+### Get Profile
+
+Retrieve the authenticated user's complete profile information including wallet balance, loyalty points, and preferences.
+
+#### GET `/api/v1/customer/info`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@info`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute
+
+**Request Headers**:
+
+```
+Authorization: Bearer {access_token}
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "id": 123,
+  "f_name": "John",
+  "l_name": "Doe",
+  "email": "john.doe@example.com",
+  "phone": "+61412345678",
+  "image": "https://currydash.au/storage/profile/user_123.jpg",
+  "is_phone_verified": 1,
+  "email_verified_at": "2025-11-15T08:30:00.000000Z",
+  "wallet_balance": 45.50,
+  "loyalty_point": 320,
+  "ref_code": "JD123ABC",
+  "order_count": 28,
+  "member_since_days": 156,
+  "created_at": "2025-07-15T10:00:00.000000Z",
+  "updated_at": "2025-12-10T14:20:00.000000Z"
+}
+```
+
+**Response Fields**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | User ID |
+| `f_name` | string | First name |
+| `l_name` | string | Last name |
+| `email` | string | Email address |
+| `phone` | string | Phone number with country code |
+| `image` | string/null | Profile picture URL |
+| `is_phone_verified` | integer | Phone verification status (0/1) |
+| `email_verified_at` | string/null | Email verification timestamp |
+| `wallet_balance` | decimal | Current wallet balance (AUD) |
+| `loyalty_point` | integer | Accumulated loyalty points |
+| `ref_code` | string | User's referral code |
+| `order_count` | integer | Total completed orders |
+| `member_since_days` | integer | Days since registration |
+
+**Error Response** (401 Unauthorized):
+
+```json
+{
+  "errors": [
+    {
+      "code": "auth-001",
+      "message": "Unauthenticated"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  Profile data is cached for 5 minutes to improve performance. Wallet balance and loyalty points are always real-time.
+</Callout>
+
+---
+
+### Update Profile
+
+Update user profile information including name, email, phone, and profile image.
+
+#### POST `/api/v1/customer/update-profile`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@updateProfile`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 10 requests/minute
+
+**Content-Type**: `multipart/form-data` (for image upload) or `application/json`
+
+**Request Body**:
+
+```json
+{
+  "f_name": "John",
+  "l_name": "Doe",
+  "email": "john.doe@example.com",
+  "phone": "+61412345678",
+  "password": "NewSecurePass123",
+  "image": "(binary file data)"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `f_name` | string | Yes | First name (max 100 characters) |
+| `l_name` | string | Yes | Last name (max 100 characters) |
+| `email` | string | Yes | Valid email address |
+| `phone` | string | No | Phone with country code |
+| `password` | string | No | New password (min 8 characters) |
+| `image` | file | No | Profile picture (JPG, PNG, max 2MB) |
+
+**Validation Rules**:
+
+```php
+[
+    'f_name' => 'required|string|max:100',
+    'l_name' => 'required|string|max:100',
+    'email' => 'required|email|unique:users,email,' . $user_id . '|max:100',
+    'phone' => 'nullable|unique:users,phone,' . $user_id . '|regex:/^\+[0-9]{10,15}$/',
+    'password' => 'nullable|min:8',
+    'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+]
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Profile updated successfully",
+  "user": {
+    "id": 123,
+    "f_name": "John",
+    "l_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+61412345678",
+    "image": "https://currydash.au/storage/profile/user_123.jpg",
+    "updated_at": "2025-12-10T15:45:00.000000Z"
+  }
+}
+```
+
+**Error Response** (422 Unprocessable Entity):
+
+```json
+{
+  "errors": [
+    {
+      "code": "validation-001",
+      "message": "The email has already been taken.",
+      "field": "email"
+    }
+  ]
+}
+```
+
+**Error Response** (413 Payload Too Large):
+
+```json
+{
+  "errors": [
+    {
+      "code": "file-001",
+      "message": "The image may not be greater than 2048 kilobytes."
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  Changing email or phone requires re-verification. Users will receive verification codes via the new contact method.
+</Callout>
+
+---
+
+## Address Management
+
+### List Addresses
+
+Retrieve all saved delivery addresses for the authenticated user.
+
+#### GET `/api/v1/customer/address/list`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@addressList`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | integer | No | Results per page (default: 10, max: 50) |
+| `offset` | integer | No | Pagination offset (default: 0) |
+
+**Success Response** (200 OK):
+
+```json
+{
+  "total": 3,
+  "limit": 10,
+  "offset": 0,
+  "addresses": [
+    {
+      "id": 45,
+      "address_type": "home",
+      "contact_person_name": "John Doe",
+      "contact_person_number": "+61412345678",
+      "address": "123 Main Street",
+      "floor": "2nd Floor",
+      "road": "George Street",
+      "house": "Apartment 5B",
+      "latitude": "-33.8688",
+      "longitude": "151.2093",
+      "zone_id": 1,
+      "is_default": 1,
+      "created_at": "2025-10-15T09:00:00.000000Z",
+      "updated_at": "2025-12-01T11:30:00.000000Z"
+    },
+    {
+      "id": 46,
+      "address_type": "office",
+      "contact_person_name": "John Doe",
+      "contact_person_number": "+61412345678",
+      "address": "456 Business Ave",
+      "floor": "10th Floor",
+      "road": "Kent Street",
+      "house": "Suite 1001",
+      "latitude": "-33.8650",
+      "longitude": "151.2070",
+      "zone_id": 1,
+      "is_default": 0,
+      "created_at": "2025-11-20T14:15:00.000000Z",
+      "updated_at": "2025-11-20T14:15:00.000000Z"
+    }
+  ]
+}
+```
+
+**Address Types**:
+
+- `home` - Residential address
+- `office` - Workplace address
+- `other` - Custom location
+
+---
+
+### Add Address
+
+Create a new delivery address for the authenticated user.
+
+#### POST `/api/v1/customer/address/add`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@addAddress`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 20 requests/minute
+
+**Request Body**:
+
+```json
+{
+  "address_type": "home",
+  "contact_person_name": "John Doe",
+  "contact_person_number": "+61412345678",
+  "address": "123 Main Street",
+  "floor": "2nd Floor",
+  "road": "George Street",
+  "house": "Apartment 5B",
+  "latitude": "-33.8688",
+  "longitude": "151.2093",
+  "zone_id": 1,
+  "is_default": 1
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `address_type` | string | Yes | Address type: `home`, `office`, `other` |
+| `contact_person_name` | string | Yes | Recipient name (max 100 characters) |
+| `contact_person_number` | string | Yes | Contact phone with country code |
+| `address` | string | Yes | Full street address (max 250 characters) |
+| `floor` | string | No | Floor/level information |
+| `road` | string | No | Road/street name |
+| `house` | string | No | Building/apartment number |
+| `latitude` | string | Yes | GPS latitude coordinate |
+| `longitude` | string | Yes | GPS longitude coordinate |
+| `zone_id` | integer | Yes | Delivery zone ID (must exist) |
+| `is_default` | integer | No | Set as default address (0/1) |
+
+**Validation Rules**:
+
+```php
+[
+    'address_type' => 'required|in:home,office,other',
+    'contact_person_name' => 'required|string|max:100',
+    'contact_person_number' => 'required|regex:/^\+[0-9]{10,15}$/',
+    'address' => 'required|string|max:250',
+    'floor' => 'nullable|string|max:50',
+    'road' => 'nullable|string|max:100',
+    'house' => 'nullable|string|max:50',
+    'latitude' => 'required|numeric|between:-90,90',
+    'longitude' => 'required|numeric|between:-180,180',
+    'zone_id' => 'required|exists:zones,id',
+    'is_default' => 'nullable|boolean',
+]
+```
+
+**Success Response** (201 Created):
+
+```json
+{
+  "message": "Address added successfully",
+  "address_id": 47,
+  "address": {
+    "id": 47,
+    "address_type": "home",
+    "contact_person_name": "John Doe",
+    "contact_person_number": "+61412345678",
+    "address": "123 Main Street",
+    "floor": "2nd Floor",
+    "road": "George Street",
+    "house": "Apartment 5B",
+    "latitude": "-33.8688",
+    "longitude": "151.2093",
+    "zone_id": 1,
+    "is_default": 1,
+    "created_at": "2025-12-10T16:00:00.000000Z",
+    "updated_at": "2025-12-10T16:00:00.000000Z"
+  }
+}
+```
+
+**Error Response** (422 Unprocessable Entity):
+
+```json
+{
+  "errors": [
+    {
+      "code": "validation-001",
+      "message": "The selected zone id is invalid.",
+      "field": "zone_id"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request):
+
+```json
+{
+  "errors": [
+    {
+      "code": "address-001",
+      "message": "Address is outside delivery coverage area"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  Setting `is_default` to 1 will automatically unset other default addresses. The system validates that coordinates fall within the selected zone's coverage area.
+</Callout>
+
+---
+
+### Update Address
+
+Modify an existing delivery address.
+
+#### PUT `/api/v1/customer/address/update/{id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@updateAddress`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 20 requests/minute
+
+**Path Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | integer | Address ID to update |
+
+**Request Body**:
+
+```json
+{
+  "address_type": "office",
+  "contact_person_name": "John Doe",
+  "contact_person_number": "+61412345678",
+  "address": "456 Business Ave",
+  "floor": "10th Floor",
+  "road": "Kent Street",
+  "house": "Suite 1001",
+  "latitude": "-33.8650",
+  "longitude": "151.2070",
+  "zone_id": 1,
+  "is_default": 0
+}
+```
+
+**Validation Rules**: Same as Add Address endpoint
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Address updated successfully",
+  "address": {
+    "id": 45,
+    "address_type": "office",
+    "contact_person_name": "John Doe",
+    "contact_person_number": "+61412345678",
+    "address": "456 Business Ave",
+    "floor": "10th Floor",
+    "road": "Kent Street",
+    "house": "Suite 1001",
+    "latitude": "-33.8650",
+    "longitude": "151.2070",
+    "zone_id": 1,
+    "is_default": 0,
+    "updated_at": "2025-12-10T16:30:00.000000Z"
+  }
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "address-002",
+      "message": "Address not found"
+    }
+  ]
+}
+```
+
+**Error Response** (403 Forbidden):
+
+```json
+{
+  "errors": [
+    {
+      "code": "address-003",
+      "message": "You do not have permission to update this address"
+    }
+  ]
+}
+```
+
+---
+
+### Delete Address
+
+Remove a saved delivery address.
+
+#### DELETE `/api/v1/customer/address/delete`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@deleteAddress`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 20 requests/minute
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `address_id` | integer | Yes | Address ID to delete |
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Address deleted successfully"
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "address-002",
+      "message": "Address not found"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request):
+
+```json
+{
+  "errors": [
+    {
+      "code": "address-004",
+      "message": "Cannot delete address with pending orders"
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  Addresses associated with pending or in-progress orders cannot be deleted. Wait for order completion or cancellation before removing the address.
+</Callout>
+
+---
+
+## Payment Methods
+
+### List Payment Methods
+
+Retrieve all saved payment methods for the authenticated user.
+
+#### GET `/api/v1/customer/payment-methods`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@getPaymentMethods`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute
+
+**Success Response** (200 OK):
+
+```json
+{
+  "payment_methods": [
+    {
+      "id": 12,
+      "type": "card",
+      "provider": "stripe",
+      "last_four": "4242",
+      "brand": "visa",
+      "exp_month": 12,
+      "exp_year": 2026,
+      "is_default": 1,
+      "created_at": "2025-09-10T10:00:00.000000Z"
+    },
+    {
+      "id": 13,
+      "type": "card",
+      "provider": "stripe",
+      "last_four": "5555",
+      "brand": "mastercard",
+      "exp_month": 8,
+      "exp_year": 2025,
+      "is_default": 0,
+      "created_at": "2025-11-05T14:20:00.000000Z"
+    }
+  ]
+}
+```
+
+**Payment Method Types**:
+
+- `card` - Credit/debit card
+- `wallet` - Digital wallet (PayPal, Apple Pay, Google Pay)
+- `bank_transfer` - Direct bank transfer
+
+**Supported Card Brands**:
+
+- `visa`
+- `mastercard`
+- `amex`
+- `discover`
+
+---
+
+### Add Payment Method
+
+Add a new payment method (credit card) to the user's account.
+
+#### POST `/api/v1/customer/payment-methods/add`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@addPaymentMethod`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 10 requests/minute
+
+**Request Body**:
+
+```json
+{
+  "payment_method_id": "pm_1AbCdEfGhIjKlMnO",
+  "is_default": 1
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `payment_method_id` | string | Yes | Stripe payment method ID from client-side tokenization |
+| `is_default` | integer | No | Set as default payment method (0/1) |
+
+**Validation Rules**:
+
+```php
+[
+    'payment_method_id' => 'required|string',
+    'is_default' => 'nullable|boolean',
+]
+```
+
+**Success Response** (201 Created):
+
+```json
+{
+  "message": "Payment method added successfully",
+  "payment_method": {
+    "id": 14,
+    "type": "card",
+    "provider": "stripe",
+    "last_four": "4242",
+    "brand": "visa",
+    "exp_month": 12,
+    "exp_year": 2026,
+    "is_default": 1,
+    "created_at": "2025-12-10T17:00:00.000000Z"
+  }
+}
+```
+
+**Error Response** (400 Bad Request):
+
+```json
+{
+  "errors": [
+    {
+      "code": "payment-001",
+      "message": "Invalid payment method ID"
+    }
+  ]
+}
+```
+
+**Error Response** (422 Unprocessable Entity):
+
+```json
+{
+  "errors": [
+    {
+      "code": "payment-002",
+      "message": "Card has expired"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  Payment method tokenization must be performed client-side using Stripe.js or similar. Never send raw card details to the backend.
+</Callout>
+
+---
+
+### Update Payment Method
+
+Update payment method settings (e.g., set as default).
+
+#### PUT `/api/v1/customer/payment-methods/update/{id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@updatePaymentMethod`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 10 requests/minute
+
+**Path Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | integer | Payment method ID |
+
+**Request Body**:
+
+```json
+{
+  "is_default": 1
+}
+```
+
+**Validation Rules**:
+
+```php
+[
+    'is_default' => 'required|boolean',
+]
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Payment method updated successfully",
+  "payment_method": {
+    "id": 13,
+    "type": "card",
+    "provider": "stripe",
+    "last_four": "5555",
+    "brand": "mastercard",
+    "is_default": 1,
+    "updated_at": "2025-12-10T17:15:00.000000Z"
+  }
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "payment-003",
+      "message": "Payment method not found"
+    }
+  ]
+}
+```
+
+---
+
+### Delete Payment Method
+
+Remove a saved payment method.
+
+#### DELETE `/api/v1/customer/payment-methods/delete/{id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\CustomerController@deletePaymentMethod`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 10 requests/minute
+
+**Path Parameters**:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | integer | Payment method ID to delete |
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Payment method deleted successfully"
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "payment-003",
+      "message": "Payment method not found"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request):
+
+```json
+{
+  "errors": [
+    {
+      "code": "payment-004",
+      "message": "Cannot delete payment method with pending transactions"
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  Payment methods associated with pending or processing orders cannot be deleted. Users must have at least one active payment method if they have recurring subscriptions.
+</Callout>
+
+---
+
+## Related Documentation
+
+- **[Authentication](/api/backend/authentication)** - Login and token management
+- **[Orders](/api/backend/orders)** - Order placement and history
+- **[Zones](/api/backend/zones)** - Delivery zone coverage
+- **[Database Schema](/developers/backend/database/schema)** - User and address models

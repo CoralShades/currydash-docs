@@ -24,6 +24,3 @@ docs/out/
 
 # Auto Claude data directory
 .auto-claude/
-!.auto-claude/roadmap/
-!.auto-claude/roadmap/roadmap.json
-nul

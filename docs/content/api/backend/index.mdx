@@ -1,8 +1,184 @@
 ---
 title: Backend API
-description: Backend API documentation
+description: Laravel REST API endpoints for CurryDash platform
 ---
+
+import { Cards, Callout } from 'nextra/components'
 
 # Backend API
 
-API documentation coming soon.
+Complete REST API documentation for the CurryDash Laravel backend. This API powers admin, vendor, and customer operations across the platform.
+
+<Callout type="info">
+  This API uses Laravel controllers with JWT token-based authentication. All endpoints are versioned under `/api/v1/`.
+</Callout>
+
+## API Categories
+
+<Cards>
+  <Cards.Card title="Authentication" href="/api/backend/authentication">
+    Sign up, login, password reset, and token management
+  </Cards.Card>
+  <Cards.Card title="Zone Management" href="/api/backend/zones">
+    Service zone listing and delivery area validation
+  </Cards.Card>
+  <Cards.Card title="Restaurants" href="/api/backend/restaurants">
+    Restaurant discovery, details, and search endpoints
+  </Cards.Card>
+  <Cards.Card title="Packages" href="/api/backend/packages">
+    Package listing, details, and CPFP configuration system
+  </Cards.Card>
+  <Cards.Card title="Cart" href="/api/backend/cart">
+    Shopping cart management and package customization
+  </Cards.Card>
+  <Cards.Card title="Orders" href="/api/backend/orders">
+    Order placement, tracking, and history
+  </Cards.Card>
+  <Cards.Card title="Subscriptions" href="/api/backend/subscriptions">
+    Recurring subscription management and scheduling
+  </Cards.Card>
+  <Cards.Card title="User Profile" href="/api/backend/profile">
+    Profile updates, addresses, and payment methods
+  </Cards.Card>
+</Cards>
+
+## Authentication
+
+All protected endpoints require JWT authentication using Bearer tokens:
+
+```bash
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+     -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
+  https://currydash.au/api/v1/endpoint
+```
+
+### Authentication Guards
+
+| Guard | Purpose | Used By |
+|-------|---------|---------|
+| `auth:api` | Customer authentication | Mobile/web apps |
+| `auth:admin` | Admin authentication | Admin portal |
+| `auth:vendor` | Vendor authentication | Vendor dashboard |
+| `dm.api` | Delivery authentication | Delivery app |
+
+### Token Lifecycle
+
+- **Access Token**: Expires after 24 hours
+- **Refresh Token**: Expires after 30 days
+- Use `/api/v1/auth/refresh` to obtain new access token
+
+## Base URLs
+
+| Environment | URL |
+|-------------|-----|
+| Production | `https://currydash.au/api/v1` |
+| Staging | `https://api-staging.currydash.au/api/v1` |
+| Development | `http://localhost:8000/api/v1` |
+
+## Rate Limits
+
+| User Type | Requests/minute |
+|-----------|-----------------|
+| Customer | 60 |
+| Vendor | 120 |
+| Admin | 300 |
+| Authentication | 5 (login/register only) |
+| Order Placement | 10 |
+
+Rate limit headers are included in all responses:
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1670650800
+```
+
+## Request Standards
+
+### Required Headers
+
+```
+Authorization: Bearer {access_token}
+Content-Type: application/json
+Accept: application/json
+Accept-Language: en           # or 'si' for Sinhala
+X-Zone-Id: 1                 # Current zone ID for location-based features
+```
+
+### Response Format
+
+All successful responses follow this structure:
+
+```json
+{
+  "data": {},           // Response data
+  "message": "Success", // Optional success message
+  "meta": {            // Optional pagination metadata
+    "total": 100,
+    "per_page": 20,
+    "current_page": 1,
+    "last_page": 5
+  }
+}
+```
+
+## Error Responses
+
+All errors follow this format:
+
+```json
+{
+  "errors": [
+    {
+      "code": "ERROR_CODE",
+      "message": "Human-readable description",
+      "field": "field_name"  // Optional for validation errors
+    }
+  ]
+}
+```
+
+## Common Error Codes
+
+| Code | Description | HTTP Status |
+|------|-------------|-------------|
+| `auth-001` | Invalid credentials | 401 |
+| `auth-002` | Token expired | 401 |
+| `auth-003` | Insufficient permissions | 403 |
+| `validation-001` | Required field missing | 422 |
+| `validation-002` | Invalid format | 422 |
+| `package-001` | Min choices not met | 422 |
+| `package-002` | Max choices exceeded | 422 |
+| `order-001` | Cart empty | 400 |
+| `order-002` | Minimum order not met | 400 |
+| `order-003` | Restaurant closed | 400 |
+| `payment-001` | Payment failed | 402 |
+| `zone-001` | Service unavailable in area | 404 |
+| `rate-limit-001` | Too many requests | 429 |
+
+## HTTP Status Codes
+
+| Status | Meaning | Usage |
+|--------|---------|-------|
+| 200 | OK | Successful GET, PUT, DELETE |
+| 201 | Created | Successful POST (resource created) |
+| 400 | Bad Request | Malformed request |
+| 401 | Unauthorized | Missing or invalid auth token |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Resource doesn't exist |
+| 422 | Unprocessable Entity | Validation failed |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Server error |
+| 503 | Service Unavailable | Maintenance mode |
+
+## API Versioning
+
+The API uses URL versioning (`/v1/`, `/v2/`). Breaking changes are released in new versions while maintaining backward compatibility for existing versions.
+
+## Related Documentation
+
+- **[Architecture Overview](/developers/backend/architecture/api-specification)**: Server-side implementation details, controllers, and business logic
+- **[Authentication & Authorization](/developers/backend/architecture/authentication-authorization)**: JWT implementation and security patterns
+- **[Data Flow](/developers/backend/architecture/data-flow)**: Request flow and data models
+- **[Business Logic](/developers/backend/architecture/service-layer-business-logic)**: Validation rules and workflows

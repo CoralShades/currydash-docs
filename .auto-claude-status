@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "003-validate-tailwind-v4-css-compatibility",
+  "spec": "005-complete-api-reference-documentation",
   "state": "building",
   "subtasks": {
-    "completed": 8,
-    "total": 9,
+    "completed": 15,
+    "total": 16,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "CSS Validation & Compatibility Audit",
+    "current": "Documentation Verification",
     "id": null,
-    "total": 9
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 4,
-    "started_at": "2026-01-22T14:23:53.877489"
+    "number": 16,
+    "started_at": "2026-01-22T14:23:56.585299"
   },
-  "last_update": "2026-01-22T14:41:33.037734"
+  "last_update": "2026-01-22T15:16:06.785085"
 }

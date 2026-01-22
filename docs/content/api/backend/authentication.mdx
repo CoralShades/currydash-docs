@@ -1,0 +1,587 @@
+---
+title: Authentication
+description: User authentication endpoints including registration, login, password reset, and token management
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Authentication
+
+JWT token-based authentication endpoints for customer registration, login, password management, and token refresh.
+
+<Callout type="info">
+  All authentication endpoints use the `/api/v1/auth/*` prefix and return JWT access tokens with 24-hour expiration.
+</Callout>
+
+## Overview
+
+The CurryDash authentication system provides:
+
+- **JWT Token Authentication**: Bearer token-based access control
+- **Refresh Token Flow**: Long-lived tokens (30 days) for token renewal
+- **Password Reset**: OTP-based password recovery via email/phone
+- **Referral System**: Optional referral code support during registration
+- **Multi-Guard Support**: Separate authentication for customers, vendors, admins, and delivery personnel
+
+### Token Lifecycle
+
+| Token Type | Expiration | Purpose |
+|------------|------------|---------|
+| Access Token | 24 hours | API authentication |
+| Refresh Token | 30 days | Renew access tokens |
+| OTP Token | 10 minutes | Password reset verification |
+
+### Authentication Guards
+
+| Guard | Purpose | Used By |
+|-------|---------|---------|
+| `auth:api` | Customer authentication | Mobile/web apps |
+| `auth:admin` | Admin authentication | Admin portal |
+| `auth:vendor` | Vendor authentication | Vendor dashboard |
+| `dm.api` | Delivery authentication | Delivery app |
+
+---
+
+## Endpoints
+
+### Sign Up
+
+Register a new customer account and receive authentication tokens.
+
+#### POST `/api/v1/auth/sign-up`
+
+**Controller**: `App\Http\Controllers\Api\V1\Auth\CustomerAuthController@register`
+
+**Authentication**: Not required
+
+**Rate Limit**: 5 requests/minute per IP
+
+**Request Body**:
+
+```json
+{
+  "f_name": "John",
+  "l_name": "Doe",
+  "email": "john.doe@example.com",
+  "phone": "+61412345678",
+  "password": "SecurePass123",
+  "ref_code": "REFER123"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `f_name` | string | Yes | First name (max 100 characters) |
+| `l_name` | string | Yes | Last name (max 100 characters) |
+| `email` | string | Yes | Valid email address (must be unique) |
+| `phone` | string | Yes | Phone with country code (must be unique) |
+| `password` | string | Yes | Password (minimum 8 characters) |
+| `ref_code` | string | No | Referral code from existing user |
+
+**Validation Rules**:
+
+```php
+[
+    'f_name' => 'required|string|max:100',
+    'l_name' => 'required|string|max:100',
+    'email' => 'required|email|unique:users,email|max:100',
+    'phone' => 'required|unique:users,phone|regex:/^\+[0-9]{10,15}$/',
+    'password' => 'required|min:8',
+    'ref_code' => 'nullable|exists:users,ref_code',
+]
+```
+
+**Success Response** (201 Created):
+
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "refresh_token": "def502001b7c8f45a9d1e3c4b2a5f6e7...",
+  "user": {
+    "id": 123,
+    "f_name": "John",
+    "l_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+61412345678",
+    "image": null,
+    "is_phone_verified": 0,
+    "email_verified_at": null,
+    "wallet_balance": 0.00,
+    "loyalty_point": 0,
+    "ref_code": "JD123ABC",
+    "created_at": "2025-12-10T10:30:00.000000Z",
+    "updated_at": "2025-12-10T10:30:00.000000Z"
+  }
+}
+```
+
+**Error Response** (403 Forbidden):
+
+```json
+{
+  "errors": [
+    {
+      "code": "email",
+      "message": "The email has already been taken."
+    }
+  ]
+}
+```
+
+**Error Response** (422 Unprocessable Entity):
+
+```json
+{
+  "errors": [
+    {
+      "code": "validation-001",
+      "message": "The password must be at least 8 characters.",
+      "field": "password"
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  Phone numbers must include country code (e.g., `+61` for Australia). Registration is rate-limited to prevent abuse.
+</Callout>
+
+---
+
+### Login
+
+Authenticate an existing user and receive JWT tokens.
+
+#### POST `/api/v1/auth/login`
+
+**Controller**: `App\Http\Controllers\Api\V1\Auth\CustomerAuthController@login`
+
+**Authentication**: Not required
+
+**Rate Limit**: 5 requests/minute per IP
+
+**Request Body**:
+
+```json
+{
+  "email_or_phone": "john.doe@example.com",
+  "password": "SecurePass123"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `email_or_phone` | string | Yes | Email address or phone number |
+| `password` | string | Yes | User password (minimum 8 characters) |
+
+**Validation Rules**:
+
+```php
+[
+    'email_or_phone' => 'required|string',
+    'password' => 'required|string|min:8',
+]
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "refresh_token": "def502001b7c8f45a9d1e3c4b2a5f6e7...",
+  "user": {
+    "id": 123,
+    "f_name": "John",
+    "l_name": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "+61412345678",
+    "image": "https://currydash.au/storage/profile/user_123.jpg",
+    "is_phone_verified": 1,
+    "email_verified_at": "2025-12-01T08:00:00.000000Z",
+    "wallet_balance": 25.50,
+    "loyalty_point": 150,
+    "ref_code": "JD123ABC",
+    "created_at": "2025-11-15T10:30:00.000000Z",
+    "updated_at": "2025-12-10T14:22:00.000000Z"
+  }
+}
+```
+
+**Error Response** (401 Unauthorized):
+
+```json
+{
+  "errors": [
+    {
+      "code": "auth-001",
+      "message": "Invalid credentials"
+    }
+  ]
+}
+```
+
+**Error Response** (429 Too Many Requests):
+
+```json
+{
+  "errors": [
+    {
+      "code": "rate-limit-001",
+      "message": "Too many login attempts. Please try again in 60 seconds."
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  The `email_or_phone` field accepts either email addresses or phone numbers with country code.
+</Callout>
+
+---
+
+### Forgot Password
+
+Request a password reset OTP sent to the user's email or phone.
+
+#### POST `/api/v1/auth/forgot-password`
+
+**Controller**: `App\Http\Controllers\Api\V1\Auth\PasswordResetController@resetPasswordRequest`
+
+**Authentication**: Not required
+
+**Rate Limit**: 5 requests/minute per IP
+
+**Request Body**:
+
+```json
+{
+  "phone_or_email": "john.doe@example.com"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `phone_or_email` | string | Yes | Registered email address or phone number |
+
+**Validation Rules**:
+
+```php
+[
+    'phone_or_email' => 'required|string',
+]
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Password reset OTP sent successfully",
+  "otp": "123456"
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "auth-004",
+      "message": "User not found with provided email or phone"
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  The OTP field is only included in development environments. In production, the OTP is sent via email/SMS only.
+</Callout>
+
+**Business Logic**:
+
+<Steps>
+
+### User Lookup
+
+System searches for user by email or phone number.
+
+### OTP Generation
+
+6-digit numeric OTP generated with 10-minute expiration.
+
+### Delivery
+
+OTP sent via:
+- **Email**: If email address provided
+- **SMS**: If phone number provided
+
+### Storage
+
+OTP stored in `password_resets` table with hashed token.
+
+</Steps>
+
+---
+
+### Reset Password
+
+Submit OTP and new password to complete password reset.
+
+#### PUT `/api/v1/auth/reset-password`
+
+**Controller**: `App\Http\Controllers\Api\V1\Auth\PasswordResetController@resetPasswordSubmit`
+
+**Authentication**: Not required
+
+**Rate Limit**: 5 requests/minute per IP
+
+**Request Body**:
+
+```json
+{
+  "phone_or_email": "john.doe@example.com",
+  "otp": "123456",
+  "password": "NewSecurePass456",
+  "confirm_password": "NewSecurePass456"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `phone_or_email` | string | Yes | Email or phone used in forgot-password request |
+| `otp` | string | Yes | 6-digit OTP received via email/SMS |
+| `password` | string | Yes | New password (minimum 8 characters) |
+| `confirm_password` | string | Yes | Must match password field |
+
+**Validation Rules**:
+
+```php
+[
+    'phone_or_email' => 'required|string',
+    'otp' => 'required|string|size:6',
+    'password' => 'required|string|min:8|confirmed',
+]
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Password reset successful"
+}
+```
+
+**Error Response** (400 Bad Request):
+
+```json
+{
+  "errors": [
+    {
+      "code": "auth-005",
+      "message": "Invalid or expired OTP"
+    }
+  ]
+}
+```
+
+**Error Response** (422 Unprocessable Entity):
+
+```json
+{
+  "errors": [
+    {
+      "code": "validation-002",
+      "message": "The password confirmation does not match.",
+      "field": "password"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  After successful password reset, users must login with their new password. Existing tokens are not automatically invalidated.
+</Callout>
+
+---
+
+### Refresh Token
+
+Obtain a new access token using a valid refresh token.
+
+#### POST `/api/v1/auth/refresh`
+
+**Controller**: `App\Http\Controllers\Api\V1\Auth\CustomerAuthController@refreshToken`
+
+**Authentication**: Not required (uses refresh token)
+
+**Rate Limit**: 10 requests/minute
+
+**Request Body**:
+
+```json
+{
+  "refresh_token": "def502001b7c8f45a9d1e3c4b2a5f6e7..."
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `refresh_token` | string | Yes | Valid refresh token from login/sign-up response |
+
+**Validation Rules**:
+
+```php
+[
+    'refresh_token' => 'required|string',
+]
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "refresh_token": "def502001b7c8f45a9d1e3c4b2a5f6e7...",
+  "expires_in": 86400
+}
+```
+
+**Response Fields**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `token` | string | New JWT access token |
+| `refresh_token` | string | New refresh token (rotated) |
+| `expires_in` | integer | Token expiration in seconds (86400 = 24 hours) |
+
+**Error Response** (401 Unauthorized):
+
+```json
+{
+  "errors": [
+    {
+      "code": "auth-002",
+      "message": "Invalid or expired refresh token"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  **Token Rotation**: Each refresh request returns a new refresh token. The old refresh token is invalidated to prevent replay attacks.
+</Callout>
+
+**Best Practices**:
+
+<Tabs items={['Mobile Apps', 'Web Apps', 'Token Storage']}>
+  <Tabs.Tab>
+    ```javascript
+    // React Native / Flutter
+    // Automatically refresh before token expiration
+    const scheduleTokenRefresh = (expiresIn) => {
+      const refreshTime = (expiresIn - 300) * 1000; // 5 min before expiry
+      setTimeout(async () => {
+        const newTokens = await refreshAccessToken();
+        scheduleTokenRefresh(newTokens.expires_in);
+      }, refreshTime);
+    };
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```javascript
+    // Next.js / React
+    // Intercept 401 responses and refresh automatically
+    axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        if (error.response?.status === 401) {
+          const newToken = await refreshAccessToken();
+          error.config.headers.Authorization = `Bearer ${newToken}`;
+          return axios.request(error.config);
+        }
+        return Promise.reject(error);
+      }
+    );
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    - **Access Token**: Store in memory or short-lived session storage
+    - **Refresh Token**: Store in secure HTTP-only cookies or encrypted local storage
+    - **Never**: Store tokens in localStorage on web (XSS vulnerable)
+    - **Mobile**: Use secure storage like iOS Keychain or Android KeyStore
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+## Error Codes
+
+All authentication endpoints may return these error codes:
+
+| Code | Message | HTTP Status | Description |
+|------|---------|-------------|-------------|
+| `auth-001` | Invalid credentials | 401 | Incorrect email/phone or password |
+| `auth-002` | Token expired | 401 | Access or refresh token has expired |
+| `auth-003` | Insufficient permissions | 403 | User lacks required permissions |
+| `auth-004` | User not found | 404 | No user with provided email/phone |
+| `auth-005` | Invalid or expired OTP | 400 | OTP incorrect or expired (10 min limit) |
+| `validation-001` | Required field missing | 422 | Required parameter not provided |
+| `validation-002` | Invalid format | 422 | Field value doesn't match expected format |
+| `rate-limit-001` | Too many requests | 429 | Rate limit exceeded (5 req/min) |
+
+---
+
+## Security Considerations
+
+<Callout type="warning">
+  **Important Security Practices**:
+
+  - Never log or expose access tokens in client-side code
+  - Store refresh tokens securely (HTTP-only cookies or encrypted storage)
+  - Implement HTTPS-only in production
+  - Use token rotation on refresh to prevent replay attacks
+  - Rate limiting is enforced to prevent brute-force attacks
+</Callout>
+
+### Password Requirements
+
+- Minimum 8 characters
+- No maximum length enforced
+- Special characters and numbers recommended but not required
+- Passwords are hashed using bcrypt with cost factor 10
+
+### Phone Number Format
+
+Phone numbers must:
+- Include country code prefix (e.g., `+61`, `+1`, `+44`)
+- Contain 10-15 digits after country code
+- Match regex: `^\+[0-9]{10,15}$`
+
+**Valid Examples**:
+- `+61412345678` (Australia)
+- `+12025551234` (USA)
+- `+442071234567` (UK)
+
+**Invalid Examples**:
+- `0412345678` (missing country code)
+- `+61-412-345-678` (contains dashes)
+- `61412345678` (missing + prefix)
+
+---
+
+## Related Documentation
+
+- **[Backend API Overview](/api/backend)**: Complete API reference and standards
+- **[Authentication & Authorization Architecture](/developers/backend/architecture/authentication-authorization)**: JWT implementation details
+- **[User Profile Endpoints](/api/backend/profile)**: Update user information after authentication
+- **[Error Handling](/developers/backend/architecture/api-specification#error-handling)**: Global error response formats

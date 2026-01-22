@@ -1,0 +1,1022 @@
+---
+title: Package System Endpoints
+description: Customizable meal package endpoints for browsing curry packs and family combos with flexible configuration options
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Package System Endpoints
+
+Public endpoints for discovering customizable meal packages, viewing configuration options, and understanding the CPFP (Curry Pack Family Pack) system.
+
+<Callout type="info">
+  Package endpoints are **publicly accessible** and do not require authentication. The Package System (CPFP) is CurryDash's core differentiator, allowing flexible meal customization.
+</Callout>
+
+## Overview
+
+The CurryDash Package System (CPFP - Curry Pack Family Pack) provides:
+
+- **Customizable Packages**: Restaurants create meal combos with selectable options
+- **Configuration Groups**: Each package has groups like "Choose protein", "Select spice level"
+- **Min/Max Validation**: Configuration groups enforce choice limits (e.g., "Select 2-3 curries")
+- **Additional Charges**: Premium options can add costs to the base price
+- **Flexible Pricing**: Total price = base_price + sum(additional_charges)
+
+### Use Cases
+
+| Use Case | Endpoint | Purpose |
+|----------|----------|---------|
+| Browse Restaurant Packages | `GET /packages/restaurant/{id}` | Display all packages from a restaurant |
+| View Package Details | `GET /packages/{id}` | Show full package with customization options |
+| Add to Cart | `POST /cart/package` | Add customized package to shopping cart |
+
+---
+
+## Endpoints
+
+### List Restaurant Packages
+
+Retrieve all available packages for a specific restaurant with basic information.
+
+#### GET `/api/v1/packages/restaurant/{restaurant_id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\PackageController@index`
+
+**Authentication**: Not required (public)
+
+**Rate Limit**: 60 requests/minute per IP
+
+**URL Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `restaurant_id` | integer | Yes | Unique restaurant identifier |
+
+**Example Request**:
+
+```
+GET /api/v1/packages/restaurant/15
+```
+
+**Success Response** (200 OK):
+
+```json
+[
+  {
+    "id": 1,
+    "restaurant_id": 15,
+    "name": "Family Curry Pack",
+    "description": "Perfect for 4 people. Choose your favorites!",
+    "image": "https://currydash.au/storage/packages/pack_1.jpg",
+    "images": [
+      "https://currydash.au/storage/packages/pack_1_1.jpg",
+      "https://currydash.au/storage/packages/pack_1_2.jpg"
+    ],
+    "base_price": 45.00,
+    "status": true,
+    "rating": 4.8,
+    "rating_count": 67
+  },
+  {
+    "id": 2,
+    "restaurant_id": 15,
+    "name": "Lunch Combo",
+    "description": "Quick lunch with rice and curry",
+    "image": "https://currydash.au/storage/packages/pack_2.jpg",
+    "images": [],
+    "base_price": 15.00,
+    "status": true,
+    "rating": 4.6,
+    "rating_count": 124
+  }
+]
+```
+
+**Response Fields**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Unique package identifier |
+| `restaurant_id` | integer | Restaurant that owns this package |
+| `name` | string | Package name (e.g., "Family Curry Pack") |
+| `description` | text | Package description and serving size |
+| `image` | string | Primary package image URL |
+| `images` | array | Additional package images (optional) |
+| `base_price` | float | Starting price before customizations (AUD) |
+| `status` | boolean | `true` if package is available for ordering |
+| `rating` | float | Average customer rating (0-5 scale) |
+| `rating_count` | integer | Total number of ratings |
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "restaurant-001",
+      "message": "Restaurant not found"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  **Package Availability**: Only active packages (`status = true`) from active restaurants are returned. Ratings reflect customer feedback on past orders.
+</Callout>
+
+**Business Logic**:
+
+<Steps>
+
+### Restaurant Validation
+
+System verifies that `restaurant_id` exists and restaurant is active (`status = 1`, `approved = 1`).
+
+### Package Query
+
+Retrieve all packages where `restaurant_id` matches and `status = 1` (active packages only).
+
+### Eager Loading
+
+Load related data for performance (ratings aggregation, image URLs).
+
+### Response Formation
+
+Serialize package list with metadata, sorted by creation date or popularity.
+
+</Steps>
+
+**Client Implementation Example**:
+
+<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```javascript
+    // Fetch all packages for a restaurant
+    const loadRestaurantPackages = async (restaurantId) => {
+      try {
+        const response = await fetch(
+          `https://currydash.au/api/v1/packages/restaurant/${restaurantId}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to load packages');
+        }
+
+        const packages = await response.json();
+
+        console.log(`Found ${packages.length} packages`);
+        packages.forEach(pkg => {
+          console.log(`${pkg.name} - $${pkg.base_price} (${pkg.rating} ⭐)`);
+        });
+
+        return packages;
+      } catch (error) {
+        console.error('Package loading error:', error.message);
+      }
+    };
+
+    // Usage
+    loadRestaurantPackages(15);
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    // Flutter - Fetch restaurant packages
+    import 'package:http/http.dart' as http;
+    import 'dart:convert';
+
+    class PackageService {
+      static const String baseUrl = 'https://currydash.au/api/v1';
+
+      Future<List<Package>> fetchRestaurantPackages(int restaurantId) async {
+        final response = await http.get(
+          Uri.parse('$baseUrl/packages/restaurant/$restaurantId'),
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> jsonList = jsonDecode(response.body);
+          return jsonList.map((json) => Package.fromJson(json)).toList();
+        } else if (response.statusCode == 404) {
+          throw Exception('Restaurant not found');
+        } else {
+          throw Exception('Failed to load packages');
+        }
+      }
+    }
+
+    // Usage in UI
+    class PackageListScreen extends StatelessWidget {
+      final int restaurantId;
+      final PackageService _service = PackageService();
+
+      PackageListScreen({required this.restaurantId});
+
+      @override
+      Widget build(BuildContext context) {
+        return FutureBuilder<List<Package>>(
+          future: _service.fetchRestaurantPackages(restaurantId),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+
+            if (!snapshot.hasData) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            final packages = snapshot.data!;
+
+            return ListView.builder(
+              itemCount: packages.length,
+              itemBuilder: (context, index) {
+                return PackageCard(package: packages[index]);
+              },
+            );
+          },
+        );
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Fetch all packages for restaurant ID 15
+    curl -X GET "https://currydash.au/api/v1/packages/restaurant/15" \
+      -H "Accept: application/json"
+
+    # Pretty print with jq
+    curl -X GET "https://currydash.au/api/v1/packages/restaurant/15" \
+      -H "Accept: application/json" | jq '.'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+### Package Details with Configuration
+
+Retrieve complete package information including all configuration groups, options, and customization rules.
+
+#### GET `/api/v1/packages/{package_id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\PackageController@show`
+
+**Authentication**: Not required (public)
+
+**Rate Limit**: 60 requests/minute per IP
+
+**URL Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `package_id` | integer | Yes | Unique package identifier |
+
+**Example Request**:
+
+```
+GET /api/v1/packages/1
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "id": 1,
+  "restaurant_id": 15,
+  "restaurant_name": "Lankan Spice House",
+  "name": "Family Curry Pack",
+  "description": "Perfect for 4 people. Includes rice, pappadum, and your choice of curries.",
+  "image": "https://currydash.au/storage/packages/pack_1.jpg",
+  "images": [
+    "https://currydash.au/storage/packages/pack_1_1.jpg",
+    "https://currydash.au/storage/packages/pack_1_2.jpg"
+  ],
+  "base_price": 45.00,
+  "status": true,
+  "rating": 4.8,
+  "rating_count": 67,
+  "configurations": [
+    {
+      "id": 1,
+      "package_id": 1,
+      "group_title": "Choose your protein (Select 2-3)",
+      "min_choices": 2,
+      "max_choices": 3,
+      "sort_order": 1,
+      "options": [
+        {
+          "id": 1,
+          "package_configuration_id": 1,
+          "food_id": 10,
+          "food": {
+            "id": 10,
+            "name": "Chicken Curry",
+            "description": "Tender chicken in Sri Lankan spices",
+            "image": "https://currydash.au/storage/food/chicken_curry.jpg",
+            "price": 14.00
+          },
+          "additional_charge": 0.00,
+          "sort_order": 1
+        },
+        {
+          "id": 2,
+          "package_configuration_id": 1,
+          "food_id": 11,
+          "food": {
+            "id": 11,
+            "name": "Lamb Curry",
+            "description": "Slow-cooked lamb in aromatic spices",
+            "image": "https://currydash.au/storage/food/lamb_curry.jpg",
+            "price": 18.00
+          },
+          "additional_charge": 5.00,
+          "sort_order": 2
+        },
+        {
+          "id": 3,
+          "package_configuration_id": 1,
+          "food_id": 12,
+          "food": {
+            "id": 12,
+            "name": "Seafood Curry",
+            "description": "Mixed seafood in coconut curry",
+            "image": "https://currydash.au/storage/food/seafood_curry.jpg",
+            "price": 16.00
+          },
+          "additional_charge": 3.00,
+          "sort_order": 3
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "package_id": 1,
+      "group_title": "Select spice level (Choose 1)",
+      "min_choices": 1,
+      "max_choices": 1,
+      "sort_order": 2,
+      "options": [
+        {
+          "id": 4,
+          "package_configuration_id": 2,
+          "food_id": 20,
+          "food": {
+            "id": 20,
+            "name": "Mild",
+            "description": "Perfect for kids",
+            "image": null,
+            "price": 0.00
+          },
+          "additional_charge": 0.00,
+          "sort_order": 1
+        },
+        {
+          "id": 5,
+          "package_configuration_id": 2,
+          "food_id": 21,
+          "food": {
+            "id": 21,
+            "name": "Medium",
+            "description": "Authentic Sri Lankan spice",
+            "image": null,
+            "price": 0.00
+          },
+          "additional_charge": 0.00,
+          "sort_order": 2
+        },
+        {
+          "id": 6,
+          "package_configuration_id": 2,
+          "food_id": 22,
+          "food": {
+            "id": 22,
+            "name": "Hot",
+            "description": "Extra spicy!",
+            "image": null,
+            "price": 0.00
+          },
+          "additional_charge": 0.00,
+          "sort_order": 3
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Response Field Guide**:
+
+**Package Level**:
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Unique package identifier |
+| `restaurant_id` | integer | Owning restaurant ID |
+| `restaurant_name` | string | Restaurant name for context |
+| `name` | string | Package name |
+| `description` | text | Detailed description including serving size |
+| `image` | string | Primary package image |
+| `images` | array | Gallery of additional images |
+| `base_price` | float | Starting price (AUD) |
+| `status` | boolean | Availability status |
+| `rating` | float | Average rating (0-5) |
+| `rating_count` | integer | Number of customer ratings |
+| `configurations` | array | Configuration groups for customization |
+
+**Configuration Level** (`configurations[]`):
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Configuration group ID |
+| `package_id` | integer | Parent package ID |
+| `group_title` | string | Configuration group title (e.g., "Choose your protein (Select 2-3)") |
+| `min_choices` | integer | Minimum selections required from this group |
+| `max_choices` | integer | Maximum selections allowed from this group |
+| `sort_order` | integer | Display order for this configuration group |
+| `options` | array | Available options within this group |
+
+**Option Level** (`configurations[].options[]`):
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Option ID |
+| `package_configuration_id` | integer | Parent configuration ID |
+| `food_id` | integer | Food item this option represents |
+| `food` | object | Full food item details (name, description, image, price) |
+| `food.price` | float | Reference price only (not used in package calculation) |
+| `additional_charge` | float | Extra cost if this option is selected (AUD) |
+| `sort_order` | integer | Display order within the group |
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "package-001",
+      "message": "Package not found or unavailable"
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  **Configuration Validation**: Customers MUST select between `min_choices` and `max_choices` options for each configuration group. The mobile/web app should validate this before allowing "Add to Cart".
+</Callout>
+
+**Business Logic**:
+
+<Steps>
+
+### Package Lookup
+
+Query package by `id` where `status = true` (active).
+
+### Load Configurations
+
+Eager load all `configurations` ordered by `sort_order`.
+
+### Load Options
+
+For each configuration, load `options` with nested `food` relationships, ordered by `sort_order`.
+
+### Calculate Price Potential
+
+Base price is fixed, but final price depends on selected options with `additional_charge > 0`.
+
+### Response Formation
+
+Serialize complete package structure with all nested relationships.
+
+</Steps>
+
+**CPFP System Explanation**:
+
+The **Curry Pack Family Pack (CPFP)** system works as follows:
+
+1. **Package**: A meal combo with a `base_price` (e.g., $45 for "Family Curry Pack")
+2. **Configuration**: A customization group (e.g., "Choose 2-3 proteins")
+3. **Options**: Selectable items within a group (e.g., Chicken $0, Lamb +$5, Seafood +$3)
+4. **Pricing**: `Final Price = base_price + sum(selected_options.additional_charge)`
+
+**Example Calculation**:
+- Base Price: $45.00
+- Customer selects: Chicken ($0), Lamb (+$5), Medium spice ($0)
+- **Final Price**: $45.00 + $5.00 = **$50.00**
+
+**Client Implementation Example**:
+
+<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```javascript
+    // Fetch package details and calculate price dynamically
+    const loadPackageDetails = async (packageId) => {
+      try {
+        const response = await fetch(
+          `https://currydash.au/api/v1/packages/${packageId}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Package not found');
+        }
+
+        const pkg = await response.json();
+
+        console.log(`${pkg.name} - Base: $${pkg.base_price}`);
+        console.log('Configurations:');
+
+        pkg.configurations.forEach(config => {
+          console.log(`\n${config.group_title}`);
+          console.log(`  Select ${config.min_choices}-${config.max_choices} options:`);
+
+          config.options.forEach(option => {
+            const chargeText = option.additional_charge > 0
+              ? ` (+$${option.additional_charge})`
+              : '';
+            console.log(`  - ${option.food.name}${chargeText}`);
+          });
+        });
+
+        return pkg;
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    };
+
+    // Calculate total price based on selections
+    const calculatePackagePrice = (pkg, selectedOptionIds) => {
+      let total = pkg.base_price;
+
+      pkg.configurations.forEach(config => {
+        config.options.forEach(option => {
+          if (selectedOptionIds.includes(option.id)) {
+            total += option.additional_charge;
+          }
+        });
+      });
+
+      return total;
+    };
+
+    // Usage
+    const pkg = await loadPackageDetails(1);
+    const selectedOptions = [1, 2, 5]; // Chicken, Lamb, Medium
+    const finalPrice = calculatePackagePrice(pkg, selectedOptions);
+    console.log(`Final Price: $${finalPrice.toFixed(2)}`);
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    // Flutter - Package details with price calculation
+    import 'package:http/http.dart' as http;
+    import 'dart:convert';
+
+    class PackageService {
+      static const String baseUrl = 'https://currydash.au/api/v1';
+
+      Future<PackageDetail> fetchPackageDetails(int packageId) async {
+        final response = await http.get(
+          Uri.parse('$baseUrl/packages/$packageId'),
+        );
+
+        if (response.statusCode == 200) {
+          return PackageDetail.fromJson(jsonDecode(response.body));
+        } else if (response.statusCode == 404) {
+          throw Exception('Package not found');
+        } else {
+          throw Exception('Failed to load package');
+        }
+      }
+
+      double calculatePrice(PackageDetail package, List<int> selectedOptionIds) {
+        double total = package.basePrice;
+
+        for (var config in package.configurations) {
+          for (var option in config.options) {
+            if (selectedOptionIds.contains(option.id)) {
+              total += option.additionalCharge;
+            }
+          }
+        }
+
+        return total;
+      }
+
+      bool validateSelections(
+        PackageDetail package,
+        Map<int, List<int>> selectionsByConfigId
+      ) {
+        for (var config in package.configurations) {
+          final selections = selectionsByConfigId[config.id] ?? [];
+
+          if (selections.length < config.minChoices ||
+              selections.length > config.maxChoices) {
+            return false;
+          }
+        }
+
+        return true;
+      }
+    }
+
+    // Usage in customization screen
+    class PackageCustomizationScreen extends StatefulWidget {
+      final int packageId;
+
+      @override
+      _PackageCustomizationScreenState createState() =>
+          _PackageCustomizationScreenState();
+    }
+
+    class _PackageCustomizationScreenState
+        extends State<PackageCustomizationScreen> {
+      final PackageService _service = PackageService();
+      Map<int, List<int>> _selections = {};
+
+      @override
+      Widget build(BuildContext context) {
+        return FutureBuilder<PackageDetail>(
+          future: _service.fetchPackageDetails(widget.packageId),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Center(child: CircularProgressIndicator());
+            }
+
+            final package = snapshot.data!;
+            final selectedOptionIds = _selections.values
+                .expand((list) => list)
+                .toList();
+            final totalPrice = _service.calculatePrice(
+              package,
+              selectedOptionIds
+            );
+
+            return Scaffold(
+              appBar: AppBar(title: Text(package.name)),
+              body: Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: package.configurations.length,
+                      itemBuilder: (context, index) {
+                        return ConfigurationGroupCard(
+                          configuration: package.configurations[index],
+                          onSelectionChanged: (optionIds) {
+                            setState(() {
+                              _selections[package.configurations[index].id] =
+                                  optionIds;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  PriceFooter(
+                    basePrice: package.basePrice,
+                    totalPrice: totalPrice,
+                    onAddToCart: () {
+                      if (_service.validateSelections(package, _selections)) {
+                        // Add to cart
+                      } else {
+                        // Show validation error
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Fetch package details
+    curl -X GET "https://currydash.au/api/v1/packages/1" \
+      -H "Accept: application/json"
+
+    # Pretty print with jq
+    curl -X GET "https://currydash.au/api/v1/packages/1" \
+      -H "Accept: application/json" | jq '.'
+
+    # Extract just configuration groups
+    curl -X GET "https://currydash.au/api/v1/packages/1" \
+      -H "Accept: application/json" | jq '.configurations[].group_title'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+---
+
+## Configuration Rules & Validation
+
+### Min/Max Choices Enforcement
+
+Each configuration group enforces selection constraints:
+
+- **Minimum Choices** (`min_choices`): Customer MUST select at least this many options
+- **Maximum Choices** (`max_choices`): Customer can select at most this many options
+
+**Validation Examples**:
+
+| Configuration | Min | Max | Valid Selections | Invalid Selections |
+|---------------|-----|-----|------------------|-------------------|
+| Choose protein | 2 | 3 | [Chicken, Lamb] ✓<br/>[Chicken, Lamb, Seafood] ✓ | [Chicken] ✗ (too few)<br/>[All 4 options] ✗ (too many) |
+| Select spice | 1 | 1 | [Mild] ✓<br/>[Medium] ✓ | [] ✗ (none)<br/>[Mild, Hot] ✗ (too many) |
+| Choose sides | 0 | 2 | [] ✓ (optional)<br/>[Rice] ✓<br/>[Rice, Naan] ✓ | [Rice, Naan, Salad] ✗ (too many) |
+
+### Price Calculation Rules
+
+**Total Price Formula**:
+```
+Total Price = base_price + Σ(selected_option.additional_charge)
+```
+
+**Example Breakdown**:
+```javascript
+{
+  basePrice: 45.00,
+  selectedOptions: [
+    { name: "Chicken Curry", charge: 0.00 },
+    { name: "Lamb Curry", charge: 5.00 },
+    { name: "Seafood Curry", charge: 3.00 },
+    { name: "Medium Spice", charge: 0.00 }
+  ],
+  calculation: "45.00 + 0 + 5 + 3 + 0 = 53.00",
+  finalPrice: 53.00
+}
+```
+
+---
+
+## Integration Workflows
+
+### Complete Package Ordering Flow
+
+<Steps>
+
+### Browse Packages
+
+Call `GET /api/v1/packages/restaurant/{id}` to list available packages.
+
+### Select Package
+
+User chooses a package from the list.
+
+### Load Configuration
+
+Call `GET /api/v1/packages/{id}` to fetch full details with customization options.
+
+### Customer Customization
+
+Display configuration groups in UI, allow customer to select options within min/max constraints.
+
+### Validate Selections
+
+Before proceeding, validate that all configurations meet min/max requirements.
+
+### Calculate Total Price
+
+Sum `base_price` + all `additional_charge` values from selected options.
+
+### Add to Cart
+
+Call `POST /api/v1/cart/package` with `package_id`, `quantity`, and `selected_options` array.
+
+</Steps>
+
+### Frontend Implementation Pattern
+
+```javascript
+// Complete package ordering workflow
+class PackageOrderingService {
+  constructor(baseUrl = 'https://currydash.au/api/v1') {
+    this.baseUrl = baseUrl;
+  }
+
+  async browsePackages(restaurantId) {
+    const response = await fetch(
+      `${this.baseUrl}/packages/restaurant/${restaurantId}`
+    );
+    return await response.json();
+  }
+
+  async getPackageDetails(packageId) {
+    const response = await fetch(`${this.baseUrl}/packages/${packageId}`);
+    return await response.json();
+  }
+
+  validateSelections(package, selectedOptionIds) {
+    const selectionsByConfig = new Map();
+
+    // Group selections by configuration
+    package.configurations.forEach(config => {
+      const configSelections = selectedOptionIds.filter(optionId =>
+        config.options.some(opt => opt.id === optionId)
+      );
+      selectionsByConfig.set(config.id, configSelections);
+    });
+
+    // Validate each configuration
+    for (const config of package.configurations) {
+      const selections = selectionsByConfig.get(config.id) || [];
+
+      if (selections.length < config.min_choices) {
+        throw new Error(
+          `${config.group_title}: Select at least ${config.min_choices} option(s)`
+        );
+      }
+
+      if (selections.length > config.max_choices) {
+        throw new Error(
+          `${config.group_title}: Select at most ${config.max_choices} option(s)`
+        );
+      }
+    }
+
+    return true;
+  }
+
+  calculatePrice(package, selectedOptionIds) {
+    let total = package.base_price;
+
+    package.configurations.forEach(config => {
+      config.options.forEach(option => {
+        if (selectedOptionIds.includes(option.id)) {
+          total += option.additional_charge;
+        }
+      });
+    });
+
+    return total;
+  }
+
+  async addToCart(packageId, quantity, selectedOptionIds, accessToken) {
+    const response = await fetch(`${this.baseUrl}/cart/package`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        package_id: packageId,
+        quantity: quantity,
+        selected_options: selectedOptionIds.map(id => ({ option_id: id }))
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.errors[0].message);
+    }
+
+    return await response.json();
+  }
+}
+
+// Usage example
+const service = new PackageOrderingService();
+
+// 1. Browse packages
+const packages = await service.browsePackages(15);
+
+// 2. Get details for selected package
+const package = await service.getPackageDetails(packages[0].id);
+
+// 3. Customer makes selections
+const selectedOptions = [1, 2, 5]; // User selected: Chicken, Lamb, Medium
+
+// 4. Validate selections
+try {
+  service.validateSelections(package, selectedOptions);
+
+  // 5. Calculate price
+  const totalPrice = service.calculatePrice(package, selectedOptions);
+  console.log(`Total: $${totalPrice}`);
+
+  // 6. Add to cart
+  await service.addToCart(package.id, 1, selectedOptions, userToken);
+  console.log('Added to cart successfully!');
+} catch (error) {
+  console.error('Validation error:', error.message);
+}
+```
+
+---
+
+## Performance Optimization
+
+### Caching Strategy
+
+<Callout type="info">
+  **Recommended Cache TTLs**:
+  - Package list: 10 minutes (frequently updated by vendors)
+  - Package details: 15 minutes (configuration changes are rare)
+  - Restaurant data: 1 hour (stable data)
+</Callout>
+
+### Optimization Techniques
+
+```javascript
+// Prefetch package details when browsing list
+const prefetchPackageDetails = async (packages) => {
+  const prefetchPromises = packages.slice(0, 5).map(pkg =>
+    fetch(`https://currydash.au/api/v1/packages/${pkg.id}`, {
+      priority: 'low'
+    }).then(res => res.json())
+      .then(data => {
+        sessionStorage.setItem(`package_${pkg.id}`, JSON.stringify(data));
+      })
+  );
+
+  await Promise.all(prefetchPromises);
+};
+
+// Use cached data when available
+const getPackageDetails = async (packageId) => {
+  const cached = sessionStorage.getItem(`package_${packageId}`);
+
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  const response = await fetch(
+    `https://currydash.au/api/v1/packages/${packageId}`
+  );
+  const data = await response.json();
+
+  sessionStorage.setItem(`package_${packageId}`, JSON.stringify(data));
+
+  return data;
+};
+```
+
+---
+
+## Error Handling
+
+### Common Error Scenarios
+
+| Error Code | HTTP Status | Cause | Resolution |
+|------------|-------------|-------|------------|
+| `restaurant-001` | 404 | Restaurant not found | Verify restaurant_id is valid and active |
+| `package-001` | 404 | Package not found or inactive | Check package_id and ensure package is active |
+| `package-002` | 422 | Min choices not met | Select more options in configuration group |
+| `package-003` | 422 | Max choices exceeded | Deselect options to stay within limit |
+| `validation-001` | 422 | Invalid request format | Review API request structure |
+| `rate-limit-001` | 429 | Too many requests | Implement client-side rate limiting |
+
+### Error Handling Example
+
+```javascript
+const handlePackageRequest = async (endpoint, options = {}) => {
+  try {
+    const response = await fetch(
+      `https://currydash.au/api/v1${endpoint}`,
+      options
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      const error = errorData.errors[0];
+
+      switch (error.code) {
+        case 'package-001':
+          throw new Error('This package is no longer available');
+        case 'package-002':
+          throw new Error(
+            'Please select more options to meet minimum requirements'
+          );
+        case 'package-003':
+          throw new Error('You have selected too many options. Please remove some.');
+        case 'restaurant-001':
+          throw new Error('Restaurant not found');
+        default:
+          throw new Error(error.message || 'An error occurred');
+      }
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Package request failed:', error);
+    showErrorNotification(error.message);
+    throw error;
+  }
+};
+```
+
+---
+
+## Related Documentation
+
+- **[Backend API Overview](/api/backend)**: Complete API reference and standards
+- **[Restaurant Endpoints](/api/backend/restaurants)**: Browse restaurants offering packages
+- **[Cart Endpoints](/api/backend/cart)**: Add customized packages to cart
+- **[Database Schema - Packages](/developers/backend/architecture/package-system-architecture-cpfp)**: CPFP system data model
+- **[Business Logic - Package Validation](/developers/backend/architecture/service-layer-business-logic#package-customization)**: Validation rules and workflows
+
+---
+
+**API Version**: v1.0
+**Last Updated**: 2026-01-22
+**Maintainer**: CurryDash Backend Team

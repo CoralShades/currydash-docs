@@ -1,0 +1,997 @@
+---
+title: Subscriptions
+description: Subscription management endpoints for recurring package deliveries including creation, pause, resume, cancel, and update operations
+---
+
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Subscriptions
+
+Comprehensive subscription management endpoints for creating and managing recurring package deliveries with flexible scheduling, pause/resume functionality, and subscription modifications.
+
+<Callout type="info">
+  All subscription endpoints require authentication via JWT token (`auth:api` guard). Subscriptions are only available for packages, not individual food items.
+</Callout>
+
+## Overview
+
+The CurryDash subscription system enables customers to:
+
+- **Create Recurring Deliveries**: Set up automated package deliveries on a regular schedule
+- **Flexible Scheduling**: Choose weekly, biweekly, or monthly delivery frequencies
+- **Pause/Resume**: Temporarily pause subscriptions for vacations or schedule changes
+- **Update Subscriptions**: Modify delivery preferences, package selections, or delivery times
+- **Cancel Subscriptions**: End recurring deliveries at any time
+- **Automated Payments**: Secure recurring payment processing via Stripe or PayPal
+
+### Subscription Status Flow
+
+| Status | Description | Available Actions |
+|--------|-------------|-------------------|
+| `active` | Subscription is running, deliveries scheduled | Pause, Update, Cancel |
+| `paused` | Temporarily paused by customer | Resume, Update, Cancel |
+| `canceled` | Subscription terminated | None (create new subscription) |
+| `expired` | Payment method failed or expired | Update payment method to reactivate |
+
+### Supported Frequencies
+
+| Frequency | Delivery Schedule |
+|-----------|-------------------|
+| `weekly` | Every 7 days on selected day |
+| `biweekly` | Every 14 days on selected day |
+| `monthly` | Every 30 days on selected day |
+
+---
+
+## Endpoints
+
+### Create Subscription
+
+Create a new recurring subscription for a customized package with automated delivery scheduling and payment.
+
+#### POST `/api/v1/subscriptions`
+
+**Controller**: `App\Http\Controllers\Api\V1\SubscriptionController@create`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 10 requests/minute per user
+
+**Request Body**:
+
+```json
+{
+  "package_id": 1,
+  "quantity": 1,
+  "selected_options": [
+    {"option_id": 1},
+    {"option_id": 2},
+    {"option_id": 5}
+  ],
+  "frequency": "weekly",
+  "delivery_day": "monday",
+  "delivery_time": "18:00",
+  "delivery_address_id": 12,
+  "start_date": "2025-12-16",
+  "payment_method": "stripe"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `package_id` | integer | Yes | Package ID to subscribe to |
+| `quantity` | integer | Yes | Quantity per delivery (min: 1, max: 5) |
+| `selected_options` | array | Yes | Package configuration options (same format as cart/package) |
+| `frequency` | string | Yes | Delivery frequency: `weekly`, `biweekly`, or `monthly` |
+| `delivery_day` | string | Yes | Day of week: `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, `saturday`, `sunday` |
+| `delivery_time` | string | Yes | Preferred delivery time in HH:mm format (24-hour) |
+| `delivery_address_id` | integer | Yes | Address ID for deliveries |
+| `start_date` | date | Yes | First delivery date (must be after today) |
+| `payment_method` | string | Yes | Payment method: `stripe` or `paypal` (cash_on_delivery not supported) |
+
+**Validation Rules**:
+
+```php
+[
+    'package_id' => 'required|exists:packages,id',
+    'quantity' => 'required|integer|min:1|max:5',
+    'selected_options' => 'required|array|min:1',
+    'selected_options.*.option_id' => 'required|exists:package_options,id',
+    'frequency' => 'required|in:weekly,biweekly,monthly',
+    'delivery_day' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+    'delivery_time' => 'required|date_format:H:i',
+    'delivery_address_id' => 'required|exists:addresses,id',
+    'start_date' => 'required|date|after:today',
+    'payment_method' => 'required|in:stripe,paypal',
+]
+```
+
+**Business Logic**:
+
+<Steps>
+
+### Validate Package Options
+Validate package exists, is active, and selected options meet min/max requirements (same as cart/package validation).
+
+### Verify Delivery Address
+Ensure delivery address is within the restaurant's service zone.
+
+### Validate Start Date
+Verify start date falls on the selected delivery day and is at least 48 hours in advance.
+
+### Setup Payment Method
+Create recurring payment authorization with the payment gateway (Stripe/PayPal subscription).
+
+### Calculate Subscription Price
+Calculate per-delivery price based on package base price + selected option charges.
+
+### Create Subscription Record
+Create subscription with schedule, payment method, and customer preferences.
+
+### Schedule First Delivery
+Create the first order record scheduled for the start date.
+
+### Send Confirmation
+Trigger email/SMS confirmation with subscription details and next delivery date.
+
+</Steps>
+
+**Success Response** (201 Created):
+
+```json
+{
+  "subscription_id": 234,
+  "status": "active",
+  "package": {
+    "id": 1,
+    "name": "Family Curry Pack",
+    "restaurant_name": "Lankan Spice House"
+  },
+  "frequency": "weekly",
+  "delivery_day": "Monday",
+  "delivery_time": "18:00",
+  "next_delivery_date": "2025-12-16",
+  "per_delivery_amount": 50.00,
+  "payment_method": "stripe",
+  "payment_status": "authorized",
+  "message": "Subscription created successfully"
+}
+```
+
+**Error Response** (400 Bad Request - Invalid Start Date):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-001",
+      "message": "Start date must be at least 48 hours in advance"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request - Day Mismatch):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-002",
+      "message": "Start date (2025-12-16) is not a Monday. Please select a Monday or change delivery_day."
+    }
+  ]
+}
+```
+
+**Error Response** (402 Payment Required - Payment Setup Failed):
+
+```json
+{
+  "errors": [
+    {
+      "code": "payment-002",
+      "message": "Unable to authorize recurring payment. Please check your payment method and try again."
+    }
+  ]
+}
+```
+
+**Error Response** (404 Not Found - Zone):
+
+```json
+{
+  "errors": [
+    {
+      "code": "zone-001",
+      "message": "Delivery service is not available at this address"
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  Subscriptions require payment method authorization for automatic recurring payments. Cash on delivery is not supported for subscriptions. Start date must be at least 48 hours in advance to allow for processing.
+</Callout>
+
+---
+
+### Pause Subscription
+
+Temporarily pause a subscription for a specified period or indefinitely.
+
+#### PUT `/api/v1/subscriptions/{id}/pause`
+
+**Controller**: `App\Http\Controllers\Api\V1\SubscriptionController@pause`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 20 requests/minute per user
+
+**Path Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | The subscription ID to pause |
+
+**Request Body**:
+
+```json
+{
+  "pause_until": "2026-01-06"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `pause_until` | date | No | Date to resume subscription (ISO 8601). If null, pauses indefinitely |
+
+**Validation Rules**:
+
+```php
+[
+    'pause_until' => 'nullable|date|after:today',
+]
+```
+
+**Business Logic**:
+
+<Steps>
+
+### Verify Ownership
+Ensure subscription belongs to authenticated user.
+
+### Check Current Status
+Verify subscription is currently active (cannot pause already paused/canceled subscriptions).
+
+### Cancel Pending Orders
+Cancel any scheduled orders between now and pause_until date.
+
+### Update Subscription Status
+Set status to `paused` and record pause_until date.
+
+### Calculate Next Delivery
+If pause_until is specified, calculate next delivery date after resumption based on frequency.
+
+### Send Confirmation
+Notify customer via email/SMS about paused subscription.
+
+</Steps>
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Subscription paused successfully",
+  "subscription": {
+    "id": 234,
+    "status": "paused",
+    "pause_until": "2026-01-06",
+    "next_delivery_date": "2026-01-13",
+    "paused_at": "2025-12-10T10:30:00Z"
+  }
+}
+```
+
+**Success Response** (200 OK - Indefinite Pause):
+
+```json
+{
+  "message": "Subscription paused successfully",
+  "subscription": {
+    "id": 234,
+    "status": "paused",
+    "pause_until": null,
+    "next_delivery_date": null,
+    "paused_at": "2025-12-10T10:30:00Z"
+  }
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-003",
+      "message": "Subscription not found or does not belong to you"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request - Already Paused):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-004",
+      "message": "Subscription is already paused. Use resume endpoint to reactivate."
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  When pausing a subscription, any orders already in preparation or out for delivery will not be canceled. Only future scheduled orders are affected. To resume, use the resume endpoint or the subscription will automatically resume after the pause_until date.
+</Callout>
+
+---
+
+### Resume Subscription
+
+Resume a paused subscription and reschedule deliveries.
+
+#### PUT `/api/v1/subscriptions/{id}/resume`
+
+**Controller**: `App\Http\Controllers\Api\V1\SubscriptionController@resume`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 20 requests/minute per user
+
+**Path Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | The subscription ID to resume |
+
+**Request Body**:
+
+```json
+{
+  "resume_immediately": true
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `resume_immediately` | boolean | No | If true, resume immediately. If false or not provided, resume on original schedule |
+
+**Validation Rules**:
+
+```php
+[
+    'resume_immediately' => 'nullable|boolean',
+]
+```
+
+**Business Logic**:
+
+<Steps>
+
+### Verify Ownership
+Ensure subscription belongs to authenticated user.
+
+### Check Current Status
+Verify subscription is currently paused.
+
+### Validate Payment Method
+Check if payment method is still valid and authorized.
+
+### Calculate Next Delivery
+If resuming immediately, calculate next delivery based on selected delivery day. Otherwise, use original schedule.
+
+### Update Subscription Status
+Set status to `active` and clear pause_until date.
+
+### Schedule Next Order
+Create order record for the next scheduled delivery.
+
+### Send Confirmation
+Notify customer via email/SMS about resumed subscription with next delivery date.
+
+</Steps>
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Subscription resumed successfully",
+  "subscription": {
+    "id": 234,
+    "status": "active",
+    "next_delivery_date": "2025-12-16",
+    "resumed_at": "2025-12-10T10:30:00Z"
+  }
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-003",
+      "message": "Subscription not found or does not belong to you"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request - Not Paused):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-005",
+      "message": "Subscription is not paused. Current status: active"
+    }
+  ]
+}
+```
+
+**Error Response** (402 Payment Required):
+
+```json
+{
+  "errors": [
+    {
+      "code": "payment-003",
+      "message": "Payment method is no longer valid. Please update payment method before resuming subscription."
+    }
+  ]
+}
+```
+
+<Callout type="tip">
+  If your payment method has expired during the pause period, you'll need to update it before resuming. Use the update subscription endpoint to add a new payment method.
+</Callout>
+
+---
+
+### Cancel Subscription
+
+Permanently cancel a subscription. This action cannot be undone.
+
+#### DELETE `/api/v1/subscriptions/{id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\SubscriptionController@cancel`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 10 requests/minute per user
+
+**Path Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | The subscription ID to cancel |
+
+**Request Body**:
+
+```json
+{
+  "cancellation_reason": "No longer needed",
+  "feedback": "Great service, but dietary requirements changed"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `cancellation_reason` | string | No | Reason for cancellation (for analytics) |
+| `feedback` | string | No | Optional feedback (max 500 characters) |
+
+**Validation Rules**:
+
+```php
+[
+    'cancellation_reason' => 'nullable|string|max:200',
+    'feedback' => 'nullable|string|max:500',
+]
+```
+
+**Business Logic**:
+
+<Steps>
+
+### Verify Ownership
+Ensure subscription belongs to authenticated user.
+
+### Check Pending Orders
+Identify any orders in preparation or out for delivery.
+
+### Cancel Future Orders
+Cancel all scheduled orders that haven't started preparation.
+
+### Terminate Payment Authorization
+Cancel recurring payment authorization with payment gateway.
+
+### Update Subscription Status
+Set status to `canceled` and record cancellation date and reason.
+
+### Calculate Savings/Usage Stats
+Generate summary of subscription usage for confirmation message.
+
+### Send Confirmation
+Notify customer with cancellation confirmation and any relevant refund information.
+
+</Steps>
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Subscription canceled successfully",
+  "subscription": {
+    "id": 234,
+    "status": "canceled",
+    "canceled_at": "2025-12-10T10:30:00Z",
+    "total_deliveries": 12,
+    "total_amount_paid": 600.00
+  },
+  "pending_orders": {
+    "count": 1,
+    "status": "Will be delivered as scheduled",
+    "order_ids": [789]
+  }
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-003",
+      "message": "Subscription not found or does not belong to you"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request - Already Canceled):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-006",
+      "message": "Subscription is already canceled"
+    }
+  ]
+}
+```
+
+<Callout type="warning">
+  Canceling a subscription is permanent and cannot be undone. You'll need to create a new subscription if you wish to resume deliveries. Orders already in preparation or out for delivery will still be completed.
+</Callout>
+
+---
+
+### Update Subscription
+
+Update subscription details including delivery preferences, package selection, or payment method.
+
+#### PUT `/api/v1/subscriptions/{id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\SubscriptionController@update`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 20 requests/minute per user
+
+**Path Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | The subscription ID to update |
+
+**Request Body**:
+
+```json
+{
+  "quantity": 2,
+  "selected_options": [
+    {"option_id": 1},
+    {"option_id": 3},
+    {"option_id": 5}
+  ],
+  "frequency": "biweekly",
+  "delivery_day": "wednesday",
+  "delivery_time": "19:00",
+  "delivery_address_id": 15,
+  "payment_method": "paypal"
+}
+```
+
+**Field Descriptions**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `quantity` | integer | No | Quantity per delivery (min: 1, max: 5) |
+| `selected_options` | array | No | Updated package configuration options |
+| `frequency` | string | No | New delivery frequency |
+| `delivery_day` | string | No | New day of week for deliveries |
+| `delivery_time` | string | No | New preferred delivery time (HH:mm format) |
+| `delivery_address_id` | integer | No | New delivery address ID |
+| `payment_method` | string | No | New payment method: `stripe` or `paypal` |
+
+**Validation Rules**:
+
+```php
+[
+    'quantity' => 'nullable|integer|min:1|max:5',
+    'selected_options' => 'nullable|array|min:1',
+    'selected_options.*.option_id' => 'required|exists:package_options,id',
+    'frequency' => 'nullable|in:weekly,biweekly,monthly',
+    'delivery_day' => 'nullable|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+    'delivery_time' => 'nullable|date_format:H:i',
+    'delivery_address_id' => 'nullable|exists:addresses,id',
+    'payment_method' => 'nullable|in:stripe,paypal',
+]
+```
+
+**Business Logic**:
+
+<Steps>
+
+### Verify Ownership
+Ensure subscription belongs to authenticated user.
+
+### Check Current Status
+Verify subscription is active or paused (cannot update canceled subscriptions).
+
+### Validate Package Options
+If updating selected_options, validate they meet package configuration requirements.
+
+### Verify New Address
+If updating delivery_address_id, ensure it's within the restaurant's service zone.
+
+### Update Payment Method
+If changing payment method, authorize new payment method and cancel old authorization.
+
+### Recalculate Price
+Calculate new per-delivery price based on updated options and quantity.
+
+### Reschedule Future Deliveries
+If frequency or delivery_day changed, recalculate all future delivery dates.
+
+### Update Subscription Record
+Save all changes to subscription.
+
+### Send Confirmation
+Notify customer with updated subscription details and next delivery date.
+
+</Steps>
+
+**Success Response** (200 OK):
+
+```json
+{
+  "message": "Subscription updated successfully",
+  "subscription": {
+    "id": 234,
+    "status": "active",
+    "package": {
+      "id": 1,
+      "name": "Family Curry Pack"
+    },
+    "quantity": 2,
+    "frequency": "biweekly",
+    "delivery_day": "Wednesday",
+    "delivery_time": "19:00",
+    "next_delivery_date": "2025-12-18",
+    "per_delivery_amount": 105.00,
+    "payment_method": "paypal",
+    "updated_at": "2025-12-10T10:30:00Z"
+  }
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-003",
+      "message": "Subscription not found or does not belong to you"
+    }
+  ]
+}
+```
+
+**Error Response** (400 Bad Request - Cannot Update Canceled):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-007",
+      "message": "Cannot update canceled subscription. Please create a new subscription."
+    }
+  ]
+}
+```
+
+**Error Response** (404 Not Found - Zone):
+
+```json
+{
+  "errors": [
+    {
+      "code": "zone-001",
+      "message": "Delivery service is not available at the new address"
+    }
+  ]
+}
+```
+
+**Error Response** (422 Unprocessable Entity - Package Options):
+
+```json
+{
+  "errors": [
+    {
+      "code": "package-001",
+      "message": "Please select at least 2 options for 'Choose your protein (Select 2-3)'"
+    }
+  ]
+}
+```
+
+<Callout type="info">
+  Changes to subscription frequency or delivery day will affect all future deliveries. Any orders already scheduled for the next delivery will be updated to reflect the changes. Price changes will apply starting from the next delivery.
+</Callout>
+
+---
+
+### Get Subscription Details
+
+Retrieve complete details for a specific subscription including delivery history and upcoming orders.
+
+#### GET `/api/v1/subscriptions/{id}`
+
+**Controller**: `App\Http\Controllers\Api\V1\SubscriptionController@show`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**Path Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | The subscription ID to retrieve |
+
+**Example Request**:
+
+```
+GET /api/v1/subscriptions/234
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "id": 234,
+  "status": "active",
+  "package": {
+    "id": 1,
+    "name": "Family Curry Pack",
+    "description": "Perfect for 4 people",
+    "image": "https://currydash.au/storage/packages/pack_1.jpg",
+    "restaurant": {
+      "id": 15,
+      "name": "Lankan Spice House",
+      "logo": "https://currydash.au/storage/restaurant/logo_15.jpg"
+    }
+  },
+  "quantity": 1,
+  "selected_options": [
+    {
+      "option_id": 1,
+      "food_name": "Chicken Curry",
+      "additional_charge": 0.00
+    },
+    {
+      "option_id": 2,
+      "food_name": "Lamb Curry",
+      "additional_charge": 5.00
+    },
+    {
+      "option_id": 5,
+      "food_name": "Medium",
+      "additional_charge": 0.00
+    }
+  ],
+  "frequency": "weekly",
+  "delivery_day": "Monday",
+  "delivery_time": "18:00",
+  "delivery_address": {
+    "id": 12,
+    "address_type": "home",
+    "contact_person_name": "John Doe",
+    "contact_person_number": "+61423456789",
+    "address": "45 Bridge Rd, Richmond VIC 3121",
+    "house": "Unit 5",
+    "floor": "2nd Floor"
+  },
+  "payment_method": "stripe",
+  "payment_status": "authorized",
+  "per_delivery_amount": 50.00,
+  "start_date": "2025-12-16",
+  "next_delivery_date": "2025-12-23",
+  "last_delivery_date": "2025-12-16",
+  "total_deliveries": 1,
+  "total_amount_paid": 50.00,
+  "pause_until": null,
+  "created_at": "2025-12-10T10:30:00Z",
+  "updated_at": "2025-12-10T10:30:00Z",
+  "delivery_history": [
+    {
+      "order_id": 789,
+      "delivery_date": "2025-12-16",
+      "status": "delivered",
+      "amount": 50.00,
+      "delivered_at": "2025-12-16T18:25:00Z"
+    }
+  ],
+  "upcoming_deliveries": [
+    {
+      "scheduled_date": "2025-12-23",
+      "estimated_time": "18:00",
+      "amount": 50.00
+    },
+    {
+      "scheduled_date": "2025-12-30",
+      "estimated_time": "18:00",
+      "amount": 50.00
+    }
+  ]
+}
+```
+
+**Error Response** (404 Not Found):
+
+```json
+{
+  "errors": [
+    {
+      "code": "subscription-003",
+      "message": "Subscription not found or does not belong to you"
+    }
+  ]
+}
+```
+
+---
+
+### List User Subscriptions
+
+Retrieve all subscriptions for the authenticated user with filtering options.
+
+#### GET `/api/v1/subscriptions`
+
+**Controller**: `App\Http\Controllers\Api\V1\SubscriptionController@index`
+
+**Authentication**: Required (`auth:api`)
+
+**Rate Limit**: 60 requests/minute per user
+
+**Query Parameters**:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `status` | string | No | Filter by status: `active`, `paused`, `canceled`, `expired` |
+| `limit` | integer | No | Number of subscriptions per page (default: 10, max: 50) |
+| `offset` | integer | No | Pagination offset (default: 0) |
+
+**Example Request**:
+
+```
+GET /api/v1/subscriptions?status=active&limit=10&offset=0
+```
+
+**Success Response** (200 OK):
+
+```json
+{
+  "total_size": 3,
+  "limit": 10,
+  "offset": 0,
+  "subscriptions": [
+    {
+      "id": 234,
+      "status": "active",
+      "package": {
+        "id": 1,
+        "name": "Family Curry Pack",
+        "image": "https://currydash.au/storage/packages/pack_1.jpg",
+        "restaurant_name": "Lankan Spice House"
+      },
+      "frequency": "weekly",
+      "delivery_day": "Monday",
+      "next_delivery_date": "2025-12-23",
+      "per_delivery_amount": 50.00,
+      "total_deliveries": 1,
+      "created_at": "2025-12-10T10:30:00Z"
+    },
+    {
+      "id": 235,
+      "status": "active",
+      "package": {
+        "id": 3,
+        "name": "Lunch Combo",
+        "image": "https://currydash.au/storage/packages/pack_3.jpg",
+        "restaurant_name": "Colombo Kitchen"
+      },
+      "frequency": "biweekly",
+      "delivery_day": "Wednesday",
+      "next_delivery_date": "2025-12-18",
+      "per_delivery_amount": 15.00,
+      "total_deliveries": 5,
+      "created_at": "2025-11-15T09:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## Related Documentation
+
+📚 **Cross-References**:
+- **Package System**: [Packages API](./packages) - Package configuration and customization
+- **Cart Management**: [Cart API](./cart) - Add packages before creating subscriptions
+- **Order Management**: [Orders API](./orders) - View subscription-generated orders
+- **Payment Processing**: [Client API Reference](https://github.com/CoralShades/User-Web-Mobile/blob/main/docs/api-reference.md) - Payment integration
+- **Business Logic**: [Business Logic](../../developers/backend/architecture/service-layer-business-logic) - Subscription validation rules
+
+---
+
+## Error Codes Reference
+
+| Error Code | Description | HTTP Status |
+|------------|-------------|-------------|
+| `subscription-001` | Start date must be at least 48 hours in advance | 400 |
+| `subscription-002` | Start date does not match selected delivery day | 400 |
+| `subscription-003` | Subscription not found or unauthorized | 404 |
+| `subscription-004` | Subscription is already paused | 400 |
+| `subscription-005` | Subscription is not paused | 400 |
+| `subscription-006` | Subscription is already canceled | 400 |
+| `subscription-007` | Cannot update canceled subscription | 400 |
+| `payment-002` | Payment authorization failed | 402 |
+| `payment-003` | Payment method invalid or expired | 402 |
+| `package-001` | Minimum package options not met | 422 |
+| `package-002` | Maximum package options exceeded | 422 |
+| `zone-001` | Service not available in delivery area | 404 |
+
+---
+
+**Last Updated**: 2026-01-22
+**API Version**: v1.0

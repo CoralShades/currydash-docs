@@ -128,28 +128,14 @@
     "zsh"
   ],
   "stack_commands": [
-    "dotnet",
-    "ipython",
-    "jupyter",
-    "msbuild",
     "node",
-    "notebook",
     "npm",
     "npx",
-    "nuget",
-    "pdb",
-    "pip",
-    "pip3",
-    "pipx",
-    "pudb",
-    "python",
-    "python3",
     "ts-node",
     "tsc",
     "tsx"
   ],
   "script_commands": [
-    "./init.sh",
     "./integrate-backend.sh",
     "./integrate-mobile.sh",
     "./migrate-existing-docs.sh",
@@ -158,10 +144,8 @@
   "custom_commands": [],
   "detected_stack": {
     "languages": [
-      "python",
       "javascript",
-      "typescript",
-      "csharp"
+      "typescript"
     ],
     "package_managers": [],
     "frameworks": [],
@@ -177,14 +161,13 @@
     "poetry_scripts": [],
     "cargo_aliases": [],
     "shell_scripts": [
-      "init.sh",
       "integrate-backend.sh",
       "integrate-mobile.sh",
       "migrate-existing-docs.sh",
       "setup-docs-repository-adapted.sh"
     ]
   },
-  "project_dir": "D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\003-validate-tailwind-v4-css-compatibility",
-  "created_at": "2026-01-22T14:24:12.218442",
-  "project_hash": "5336ead26cc4f12a8e373e011ad64ae1"
+  "project_dir": "D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\005-complete-api-reference-documentation",
+  "created_at": "2026-01-22T14:24:08.498778",
+  "project_hash": "070a890538579c0a47ace7636b95c24c"
 }
