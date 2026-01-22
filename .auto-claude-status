@@ -1,15 +1,15 @@
 {
   "active": true,
-  "spec": "005-complete-api-reference-documentation",
+  "spec": "006-code-examples-snippets-enhancement",
   "state": "building",
   "subtasks": {
-    "completed": 15,
-    "total": 16,
+    "completed": 2,
+    "total": 23,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Documentation Verification",
+    "current": "CodeBlock Component Development",
     "id": null,
     "total": 3
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 16,
-    "started_at": "2026-01-22T14:23:56.585299"
+    "number": 4,
+    "started_at": "2026-01-22T16:15:31.049710"
   },
-  "last_update": "2026-01-22T15:16:06.785085"
+  "last_update": "2026-01-22T16:25:25.514628"
 }
