@@ -21,11 +21,25 @@ function isInternalLink(url) {
 
 // Resolve relative path
 function resolvePath(fromFile, toPath) {
-  const fromDir = path.dirname(fromFile);
-  const resolved = path.resolve(fromDir, toPath);
+  let resolved;
+
+  // Handle root-relative URLs (starting with /)
+  if (toPath.startsWith('/')) {
+    // Remove leading slash and resolve from docs/content
+    const relativePath = toPath.substring(1);
+    resolved = path.join('docs/content', relativePath);
+  } else {
+    // Handle relative URLs
+    const fromDir = path.dirname(fromFile);
+    resolved = path.resolve(fromDir, toPath);
+  }
 
   // Remove .mdx extension if present
   let cleanPath = resolved.replace(/\.mdx$/, '');
+
+  // Remove anchor fragments
+  cleanPath = cleanPath.split('#')[0];
+  resolved = resolved.split('#')[0];
 
   // Try multiple variations
   const variations = [
