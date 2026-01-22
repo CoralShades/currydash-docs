@@ -6,4 +6,7 @@ export default {
   gcp: 'Google Cloud Platform',
   docker: 'Docker & Containers',
   'ci-cd': 'CI/CD Pipelines',
+  guides: 'Deployment Guides',
+  workflows: 'Deployment Workflows',
+  templates: 'Deployment Templates',
 }
