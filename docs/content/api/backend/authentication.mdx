@@ -71,7 +71,7 @@ Register a new customer account and receive authentication tokens.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -136,6 +136,90 @@ Register a new customer account and receive authentication tokens.
             'success' => false,
             'message' => 'Unable to connect to authentication service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> signUp({
+      required String firstName,
+      required String lastName,
+      required String email,
+      required String phone,
+      required String password,
+      String? refCode,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/auth/sign-up'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'f_name': firstName,
+            'l_name': lastName,
+            'email': email,
+            'phone': phone,
+            'password': password,
+            if (refCode != null) 'ref_code': refCode,
+          }),
+        );
+
+        if (response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+
+          // Store tokens securely
+          await storage.write(key: 'access_token', value: data['token']);
+          await storage.write(key: 'refresh_token', value: data['refresh_token']);
+          await storage.write(key: 'user', value: jsonEncode(data['user']));
+
+          return {
+            'success': true,
+            'user': data['user'],
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'errors': errors,
+          };
+        }
+
+        // Handle duplicate email/phone (403)
+        if (response.statusCode == 403) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Email or phone already registered',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Registration failed',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Sign up request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to authentication service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -260,7 +344,7 @@ Authenticate an existing user and receive JWT tokens.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -321,6 +405,84 @@ Authenticate an existing user and receive JWT tokens.
             'success' => false,
             'message' => 'Unable to connect to authentication service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> login({
+      required String emailOrPhone,
+      required String password,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/auth/login'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'email_or_phone': emailOrPhone,
+            'password': password,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          // Store tokens securely
+          await storage.write(key: 'access_token', value: data['token']);
+          await storage.write(key: 'refresh_token', value: data['refresh_token']);
+          await storage.write(key: 'user', value: jsonEncode(data['user']));
+
+          return {
+            'success': true,
+            'message': 'Login successful',
+            'user': data['user'],
+          };
+        }
+
+        // Handle invalid credentials (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Invalid email/phone or password',
+          };
+        }
+
+        // Handle rate limiting (429)
+        if (response.statusCode == 429) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          final message = errors.isNotEmpty
+              ? errors[0]['message']
+              : 'Too many login attempts';
+
+          return {
+            'success': false,
+            'message': message,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Login failed',
+        };
+
+      } catch (e) {
+        debugPrint('Login request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to authentication service',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -431,7 +593,7 @@ Request a password reset OTP sent to the user's email or phone.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -487,6 +649,73 @@ Request a password reset OTP sent to the user's email or phone.
             'success' => false,
             'message' => 'Unable to process password reset request',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+
+    Future<Map<String, dynamic>> forgotPassword({
+      required String phoneOrEmail,
+    }) async {
+      try {
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/auth/forgot-password'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'phone_or_email': phoneOrEmail,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          // In development, OTP may be returned in response
+          // In production, OTP is only sent via email/SMS
+          final message = data['message'] ?? 'Password reset OTP sent successfully';
+
+          return {
+            'success': true,
+            'message': message,
+            if (data['otp'] != null) 'otp': data['otp'], // Only in development
+          };
+        }
+
+        // Handle user not found (404)
+        if (response.statusCode == 404) {
+          return {
+            'success': false,
+            'message': 'No account found with this email or phone',
+          };
+        }
+
+        // Handle rate limiting (429)
+        if (response.statusCode == 429) {
+          return {
+            'success': false,
+            'message': 'Too many password reset requests. Please try again later.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to send password reset OTP',
+        };
+
+      } catch (e) {
+        debugPrint('Forgot password request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to process password reset request',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -593,7 +822,7 @@ Submit OTP and new password to complete password reset.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -657,6 +886,84 @@ Submit OTP and new password to complete password reset.
             'success' => false,
             'message' => 'Unable to process password reset',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+
+    Future<Map<String, dynamic>> resetPassword({
+      required String phoneOrEmail,
+      required String otp,
+      required String password,
+      required String confirmPassword,
+    }) async {
+      try {
+        final response = await http.put(
+          Uri.parse('https://api.currydash.au/api/v1/auth/reset-password'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'phone_or_email': phoneOrEmail,
+            'otp': otp,
+            'password': password,
+            'confirm_password': confirmPassword,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Password reset successful',
+          };
+        }
+
+        // Handle invalid/expired OTP (400)
+        if (response.statusCode == 400) {
+          return {
+            'success': false,
+            'message': 'Invalid or expired OTP. Please request a new one.',
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Validation failed',
+            'errors': errors,
+          };
+        }
+
+        // Handle rate limiting (429)
+        if (response.statusCode == 429) {
+          return {
+            'success': false,
+            'message': 'Too many password reset attempts. Please try again later.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to reset password',
+        };
+
+      } catch (e) {
+        debugPrint('Reset password request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to process password reset',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -757,7 +1064,7 @@ Obtain a new access token using a valid refresh token.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -830,6 +1137,89 @@ Obtain a new access token using a valid refresh token.
     ```
   </Tabs.Tab>
   <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> refreshToken() async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final refreshToken = await storage.read(key: 'refresh_token');
+
+        if (refreshToken == null) {
+          return {
+            'success': false,
+            'message': 'No refresh token available',
+          };
+        }
+
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/auth/refresh'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'refresh_token': refreshToken,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          // Store new tokens (old refresh token is now invalidated)
+          await storage.write(key: 'access_token', value: data['token']);
+          await storage.write(key: 'refresh_token', value: data['refresh_token']);
+
+          return {
+            'success': true,
+            'message': 'Token refreshed successfully',
+            'expires_in': data['expires_in'],
+          };
+        }
+
+        // Handle invalid/expired refresh token (401)
+        if (response.statusCode == 401) {
+          // Clear invalid tokens and require re-login
+          await storage.delete(key: 'access_token');
+          await storage.delete(key: 'refresh_token');
+          await storage.delete(key: 'user');
+
+          return {
+            'success': false,
+            'message': 'Refresh token expired. Please login again.',
+            'require_login': true,
+          };
+        }
+
+        // Handle rate limiting (429)
+        if (response.statusCode == 429) {
+          return {
+            'success': false,
+            'message': 'Too many refresh requests. Please try again later.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to refresh token',
+        };
+
+      } catch (e) {
+        debugPrint('Token refresh failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to refresh authentication token',
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
     ```bash
     curl -X POST https://api.currydash.au/api/v1/auth/refresh \
       -H "Content-Type: application/json" \
@@ -898,7 +1288,7 @@ After obtaining an access token from login, sign-up, or refresh endpoints, inclu
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -1011,6 +1401,141 @@ After obtaining an access token from login, sign-up, or refresh endpoints, inclu
     ```
   </Tabs.Tab>
   <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    /// Make an authenticated API request with automatic token refresh
+    Future<Map<String, dynamic>> makeAuthenticatedRequest({
+      required String endpoint,
+      Map<String, dynamic>? data,
+      String method = 'POST',
+    }) async {
+      final storage = FlutterSecureStorage();
+      final accessToken = await storage.read(key: 'access_token');
+
+      if (accessToken == null) {
+        return {
+          'success': false,
+          'message': 'Not authenticated',
+        };
+      }
+
+      try {
+        final uri = Uri.parse('https://api.currydash.au$endpoint');
+        final headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        };
+
+        final response = method == 'GET'
+            ? await http.get(uri, headers: headers)
+            : await http.post(uri, headers: headers, body: jsonEncode(data ?? {}));
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return {
+            'success': true,
+            'data': jsonDecode(response.body),
+          };
+        }
+
+        // Handle token expiration (401)
+        if (response.statusCode == 401) {
+          // Attempt to refresh token
+          final refreshResult = await refreshAccessToken();
+
+          if (refreshResult['success'] == true) {
+            // Retry request with new token
+            final newAccessToken = await storage.read(key: 'access_token');
+            final retryHeaders = {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $newAccessToken',
+            };
+
+            final retryResponse = method == 'GET'
+                ? await http.get(uri, headers: retryHeaders)
+                : await http.post(uri, headers: retryHeaders, body: jsonEncode(data ?? {}));
+
+            if (retryResponse.statusCode >= 200 && retryResponse.statusCode < 300) {
+              return {
+                'success': true,
+                'data': jsonDecode(retryResponse.body),
+              };
+            }
+          }
+
+          // Refresh failed, require re-login
+          return {
+            'success': false,
+            'message': 'Session expired. Please login again.',
+            'require_login': true,
+          };
+        }
+
+        // Handle other errors
+        final errors = jsonDecode(response.body)['errors'] ?? [];
+        return {
+          'success': false,
+          'message': 'Request failed',
+          'errors': errors,
+        };
+
+      } catch (e) {
+        debugPrint('Authenticated request failed: $endpoint - $e');
+
+        return {
+          'success': false,
+          'message': 'Request failed',
+        };
+      }
+    }
+
+    /// Refresh access token helper function
+    Future<Map<String, dynamic>> refreshAccessToken() async {
+      final storage = FlutterSecureStorage();
+      final refreshToken = await storage.read(key: 'refresh_token');
+
+      if (refreshToken == null) {
+        return {'success': false};
+      }
+
+      try {
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/auth/refresh'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: jsonEncode({
+            'refresh_token': refreshToken,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          await storage.write(key: 'access_token', value: data['token']);
+          await storage.write(key: 'refresh_token', value: data['refresh_token']);
+
+          return {'success': true};
+        }
+
+        // Clear invalid tokens
+        await storage.delete(key: 'access_token');
+        await storage.delete(key: 'refresh_token');
+        await storage.delete(key: 'user');
+        return {'success': false};
+
+      } catch (e) {
+        debugPrint('Token refresh failed: $e');
+        return {'success': false};
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
     ```bash
     # Replace YOUR_ACCESS_TOKEN with actual token from login/sign-up
     curl -X GET https://api.currydash.au/api/v1/customer/profile \
@@ -1031,16 +1556,42 @@ After obtaining an access token from login, sign-up, or refresh endpoints, inclu
 
 <Tabs items={['Mobile Apps', 'Web Apps', 'Token Storage']}>
   <Tabs.Tab>
-    ```javascript
-    // React Native / Flutter
-    // Automatically refresh before token expiration
-    const scheduleTokenRefresh = (expiresIn) => {
-      const refreshTime = (expiresIn - 300) * 1000; // 5 min before expiry
-      setTimeout(async () => {
-        const newTokens = await refreshAccessToken();
-        scheduleTokenRefresh(newTokens.expires_in);
-      }, refreshTime);
-    };
+    ```dart
+    // Flutter - Automatically refresh before token expiration
+    import 'dart:async';
+
+    Timer? _tokenRefreshTimer;
+
+    void scheduleTokenRefresh(int expiresIn) {
+      // Cancel existing timer if any
+      _tokenRefreshTimer?.cancel();
+
+      // Schedule refresh 5 minutes before expiry
+      final refreshTime = Duration(seconds: expiresIn - 300);
+
+      _tokenRefreshTimer = Timer(refreshTime, () async {
+        final result = await refreshAccessToken();
+        if (result['success'] == true) {
+          final newExpiresIn = result['expires_in'] ?? 86400;
+          scheduleTokenRefresh(newExpiresIn);
+        } else {
+          // Refresh failed, require re-login
+          debugPrint('Token refresh failed, user needs to re-login');
+          // Navigate to login screen or show re-authentication dialog
+        }
+      });
+    }
+
+    // Call after login or token refresh
+    void onAuthenticationSuccess(int expiresIn) {
+      scheduleTokenRefresh(expiresIn);
+    }
+
+    // Cancel timer on logout
+    void onLogout() {
+      _tokenRefreshTimer?.cancel();
+      _tokenRefreshTimer = null;
+    }
     ```
   </Tabs.Tab>
   <Tabs.Tab>
@@ -1065,6 +1616,7 @@ After obtaining an access token from login, sign-up, or refresh endpoints, inclu
     - **Refresh Token**: Store in secure HTTP-only cookies or encrypted local storage
     - **Never**: Store tokens in localStorage on web (XSS vulnerable)
     - **Mobile**: Use secure storage like iOS Keychain or Android KeyStore
+    - **Flutter**: Use `flutter_secure_storage` package for encrypted storage on both platforms
   </Tabs.Tab>
 </Tabs>
 
