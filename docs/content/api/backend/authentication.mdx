@@ -69,6 +69,93 @@ Register a new customer account and receive authentication tokens.
 }
 ```
 
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $response = Http::post('https://api.currydash.au/api/v1/auth/sign-up', [
+            'f_name' => 'John',
+            'l_name' => 'Doe',
+            'email' => 'john.doe@example.com',
+            'phone' => '+61412345678',
+            'password' => 'SecurePass123',
+            'ref_code' => 'REFER123',
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // Store tokens securely
+            session(['access_token' => $data['token']]);
+            session(['refresh_token' => $data['refresh_token']]);
+            session(['user' => $data['user']]);
+
+            return response()->json([
+                'success' => true,
+                'user' => $data['user'],
+            ]);
+        }
+
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle duplicate email/phone (403)
+        if ($response->status() === 403) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Email or phone already registered',
+                'errors' => $errors,
+            ], 403);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Registration failed',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Sign up request failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to authentication service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X POST https://api.currydash.au/api/v1/auth/sign-up \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -d '{
+        "f_name": "John",
+        "l_name": "Doe",
+        "email": "john.doe@example.com",
+        "phone": "+61412345678",
+        "password": "SecurePass123",
+        "ref_code": "REFER123"
+      }'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
 **Field Descriptions**:
 
 | Field | Type | Required | Description |
@@ -171,6 +258,85 @@ Authenticate an existing user and receive JWT tokens.
 }
 ```
 
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $response = Http::post('https://api.currydash.au/api/v1/auth/login', [
+            'email_or_phone' => 'john.doe@example.com',
+            'password' => 'SecurePass123',
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // Store tokens securely
+            session(['access_token' => $data['token']]);
+            session(['refresh_token' => $data['refresh_token']]);
+            session(['user' => $data['user']]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login successful',
+                'user' => $data['user'],
+            ]);
+        }
+
+        // Handle invalid credentials (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid email/phone or password',
+            ], 401);
+        }
+
+        // Handle rate limiting (429)
+        if ($response->status() === 429) {
+            $errors = $response->json('errors', []);
+            $message = $errors[0]['message'] ?? 'Too many login attempts';
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], 429);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Login failed',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('Login request failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to authentication service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X POST https://api.currydash.au/api/v1/auth/login \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -d '{
+        "email_or_phone": "john.doe@example.com",
+        "password": "SecurePass123"
+      }'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
 **Field Descriptions**:
 
 | Field | Type | Required | Description |
@@ -263,6 +429,79 @@ Request a password reset OTP sent to the user's email or phone.
 }
 ```
 
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $response = Http::post('https://api.currydash.au/api/v1/auth/forgot-password', [
+            'phone_or_email' => 'john.doe@example.com',
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // In development, OTP may be returned in response
+            // In production, OTP is only sent via email/SMS
+            $message = $data['message'] ?? 'Password reset OTP sent successfully';
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'otp' => $data['otp'] ?? null, // Only in development
+            ]);
+        }
+
+        // Handle user not found (404)
+        if ($response->status() === 404) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No account found with this email or phone',
+            ], 404);
+        }
+
+        // Handle rate limiting (429)
+        if ($response->status() === 429) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many password reset requests. Please try again later.',
+            ], 429);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to send password reset OTP',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('Forgot password request failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to process password reset request',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X POST https://api.currydash.au/api/v1/auth/forgot-password \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -d '{
+        "phone_or_email": "john.doe@example.com"
+      }'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
 **Field Descriptions**:
 
 | Field | Type | Required | Description |
@@ -352,6 +591,90 @@ Submit OTP and new password to complete password reset.
 }
 ```
 
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $response = Http::put('https://api.currydash.au/api/v1/auth/reset-password', [
+            'phone_or_email' => 'john.doe@example.com',
+            'otp' => '123456',
+            'password' => 'NewSecurePass456',
+            'confirm_password' => 'NewSecurePass456',
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'message' => $data['message'] ?? 'Password reset successful',
+            ]);
+        }
+
+        // Handle invalid/expired OTP (400)
+        if ($response->status() === 400) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired OTP. Please request a new one.',
+            ], 400);
+        }
+
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle rate limiting (429)
+        if ($response->status() === 429) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many password reset attempts. Please try again later.',
+            ], 429);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to reset password',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('Reset password request failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to process password reset',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X PUT https://api.currydash.au/api/v1/auth/reset-password \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -d '{
+        "phone_or_email": "john.doe@example.com",
+        "otp": "123456",
+        "password": "NewSecurePass456",
+        "confirm_password": "NewSecurePass456"
+      }'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
 **Field Descriptions**:
 
 | Field | Type | Required | Description |
@@ -432,6 +755,92 @@ Obtain a new access token using a valid refresh token.
 }
 ```
 
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $refreshToken = session('refresh_token');
+
+        if (!$refreshToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No refresh token available',
+            ], 401);
+        }
+
+        $response = Http::post('https://api.currydash.au/api/v1/auth/refresh', [
+            'refresh_token' => $refreshToken,
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // Store new tokens (old refresh token is now invalidated)
+            session(['access_token' => $data['token']]);
+            session(['refresh_token' => $data['refresh_token']]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token refreshed successfully',
+                'expires_in' => $data['expires_in'],
+            ]);
+        }
+
+        // Handle invalid/expired refresh token (401)
+        if ($response->status() === 401) {
+            // Clear invalid tokens and require re-login
+            session()->forget(['access_token', 'refresh_token', 'user']);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Refresh token expired. Please login again.',
+                'require_login' => true,
+            ], 401);
+        }
+
+        // Handle rate limiting (429)
+        if ($response->status() === 429) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many refresh requests. Please try again later.',
+            ], 429);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to refresh token',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('Token refresh failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to refresh authentication token',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X POST https://api.currydash.au/api/v1/auth/refresh \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -d '{
+        "refresh_token": "def502001b7c8f45a9d1e3c4b2a5f6e7..."
+      }'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
 **Field Descriptions**:
 
 | Field | Type | Required | Description |
@@ -480,6 +889,143 @@ Obtain a new access token using a valid refresh token.
 <Callout type="info">
   **Token Rotation**: Each refresh request returns a new refresh token. The old refresh token is invalidated to prevent replay attacks.
 </Callout>
+
+---
+
+## Using Authenticated Requests
+
+After obtaining an access token from login, sign-up, or refresh endpoints, include it in the `Authorization` header for protected API endpoints.
+
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    /**
+     * Make an authenticated API request
+     */
+    function makeAuthenticatedRequest(string $endpoint, array $data = [])
+    {
+        $accessToken = session('access_token');
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not authenticated',
+            ], 401);
+        }
+
+        try {
+            $response = Http::withToken($accessToken)
+                ->post("https://api.currydash.au{$endpoint}", $data);
+
+            if ($response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $response->json(),
+                ]);
+            }
+
+            // Handle token expiration (401)
+            if ($response->status() === 401) {
+                // Attempt to refresh token
+                $refreshResult = refreshAccessToken();
+
+                if ($refreshResult['success']) {
+                    // Retry request with new token
+                    $retryResponse = Http::withToken(session('access_token'))
+                        ->post("https://api.currydash.au{$endpoint}", $data);
+
+                    if ($retryResponse->successful()) {
+                        return response()->json([
+                            'success' => true,
+                            'data' => $retryResponse->json(),
+                        ]);
+                    }
+                }
+
+                // Refresh failed, require re-login
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Session expired. Please login again.',
+                    'require_login' => true,
+                ], 401);
+            }
+
+            // Handle other errors
+            return response()->json([
+                'success' => false,
+                'message' => 'Request failed',
+                'errors' => $response->json('errors', []),
+            ], $response->status());
+
+        } catch (RequestException $e) {
+            Log::error('Authenticated request failed', [
+                'endpoint' => $endpoint,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Request failed',
+            ], 500);
+        }
+    }
+
+    /**
+     * Refresh access token helper function
+     */
+    function refreshAccessToken(): array
+    {
+        $refreshToken = session('refresh_token');
+
+        if (!$refreshToken) {
+            return ['success' => false];
+        }
+
+        try {
+            $response = Http::post('https://api.currydash.au/api/v1/auth/refresh', [
+                'refresh_token' => $refreshToken,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                session(['access_token' => $data['token']]);
+                session(['refresh_token' => $data['refresh_token']]);
+
+                return ['success' => true];
+            }
+
+            // Clear invalid tokens
+            session()->forget(['access_token', 'refresh_token', 'user']);
+            return ['success' => false];
+
+        } catch (RequestException $e) {
+            Log::error('Token refresh failed', ['error' => $e->getMessage()]);
+            return ['success' => false];
+        }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    # Replace YOUR_ACCESS_TOKEN with actual token from login/sign-up
+    curl -X GET https://api.currydash.au/api/v1/customer/profile \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="info">
+  The example above shows automatic token refresh when a 401 error is encountered. This provides a seamless user experience without requiring manual re-login when tokens expire.
+</Callout>
+
+---
 
 **Best Practices**:
 
