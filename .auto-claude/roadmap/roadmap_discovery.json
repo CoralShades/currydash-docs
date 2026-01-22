@@ -1,0 +1,139 @@
+{
+  "project_name": "CurryDash Docs",
+  "project_type": "web-app",
+  "tech_stack": {
+    "primary_language": "TypeScript",
+    "frameworks": [
+      "Next.js 16.1.4",
+      "Nextra 4.0.0",
+      "React 18.2.0",
+      "Tailwind CSS 4.0.0"
+    ],
+    "key_dependencies": [
+      "nextra",
+      "nextra-theme-docs",
+      "pagefind",
+      "semantic-release",
+      "gray-matter",
+      "@commitlint/cli",
+      "husky"
+    ]
+  },
+  "target_audience": {
+    "primary_persona": "Software developers building and maintaining the CurryDash food delivery platform (Laravel backend and Flutter frontend developers)",
+    "secondary_personas": [
+      "Food vendors and restaurant owners using the Seller Portal",
+      "Platform administrators managing the CurryDash system",
+      "DevOps engineers handling deployment and infrastructure",
+      "Technical writers maintaining documentation"
+    ],
+    "pain_points": [
+      "Documentation scattered across multiple repositories",
+      "Difficulty keeping docs in sync with rapidly evolving codebase",
+      "Lack of centralized knowledge base for multi-team collaboration",
+      "Manual documentation updates are error-prone and time-consuming",
+      "Different audiences need different levels of technical detail"
+    ],
+    "goals": [
+      "Quickly understand the CurryDash platform architecture",
+      "Find accurate API documentation for integration work",
+      "Learn how to use the Seller Portal effectively",
+      "Onboard new team members efficiently",
+      "Keep documentation automatically synchronized with code changes"
+    ],
+    "usage_context": "Accessed during development, onboarding, troubleshooting, and integration work. Used by developers daily for API reference, by vendors for portal guidance, and by admins for platform management instructions."
+  },
+  "product_vision": {
+    "one_liner": "A centralized, automatically-synchronized documentation platform for the CurryDash Sri Lankan food delivery service ecosystem.",
+    "problem_statement": "CurryDash operates across multiple repositories (Laravel backend, Flutter apps) with different audiences (developers, vendors, admins). Without centralized documentation, knowledge becomes fragmented, onboarding is slow, and keeping docs current with code changes requires significant manual effort.",
+    "value_proposition": "CurryDash Docs provides a single source of truth that automatically stays in sync with code repositories using BMAD Method workflows and semantic versioning. It delivers audience-specific content (developers, vendors, admins) through a modern, searchable Nextra-powered documentation site with a headless API for integration.",
+    "success_metrics": [
+      "Documentation coverage of all major features across both repositories",
+      "Reduced time-to-productivity for new team members (<1 week onboarding)",
+      "Documentation freshness (auto-sync latency <24 hours after code merge)",
+      "Search effectiveness (Pagefind index covers all content)",
+      "API documentation completeness for all REST endpoints",
+      "Positive feedback from all three audience segments"
+    ]
+  },
+  "current_state": {
+    "maturity": "mvp",
+    "existing_features": [
+      "Nextra 4 documentation site with Next.js 16 App Router",
+      "Multi-audience content structure (developers, vendors, admins, API reference)",
+      "Pagefind full-text search integration",
+      "Semantic Release for automated versioning",
+      "Cross-repository sync workflows via GitHub Actions",
+      "BMAD Method integration for documentation generation",
+      "Headless API endpoints for navigation and content delivery",
+      "MDX content support with React components",
+      "Tailwind CSS styling",
+      "95+ MDX documentation files covering platform topics",
+      "Change spec system for tracking documentation updates"
+    ],
+    "known_gaps": [
+      "Documentation content needs enrichment with more examples and code samples",
+      "API reference documentation may be incomplete for all endpoints",
+      "Interactive API playground/testing not implemented",
+      "Versioned documentation (multiple versions) not yet supported",
+      "Analytics and usage tracking not implemented",
+      "Internationalization (i18n) not configured",
+      "PDF export or offline documentation not available",
+      "Video tutorials and interactive guides not created"
+    ],
+    "technical_debt": [
+      "Legacy docs in docs-legacy/ need migration/consolidation",
+      "Outdated templates in 'bmad-docops/templates - outdated' folder",
+      "Documentation sync workflow may need testing with actual code repository triggers",
+      "Some placeholder content may exist in audience-specific sections"
+    ]
+  },
+  "competitive_context": {
+    "alternatives": [
+      "GitBook - hosted documentation platform",
+      "Docusaurus - Facebook's documentation framework",
+      "ReadMe.io - API documentation platform",
+      "Notion - collaborative documentation workspace",
+      "Confluence - enterprise wiki and documentation"
+    ],
+    "differentiators": [
+      "Automatic sync with multiple source code repositories via BMAD Method",
+      "Multi-audience architecture with role-specific content paths",
+      "Headless API enabling documentation-as-a-service for other applications",
+      "Semantic versioning tied to documentation changes",
+      "Deep integration with existing CI/CD and development workflows",
+      "Self-hosted control over documentation infrastructure"
+    ],
+    "market_position": "Internal documentation platform purpose-built for the CurryDash multi-repository architecture. Prioritizes automation, developer experience, and audience-specific content delivery over general-purpose documentation features.",
+    "competitor_pain_points": [],
+    "competitor_analysis_available": false
+  },
+  "constraints": {
+    "technical": [
+      "Documentation must support Next.js App Router patterns",
+      "Content format locked to MDX for Nextra compatibility",
+      "Search limited to Pagefind capabilities",
+      "Styling constrained to Tailwind CSS and Nextra theme",
+      "Requires Node.js 20+ runtime"
+    ],
+    "resources": [
+      "Single repository with initial commit indicates early-stage project",
+      "Documentation updates depend on development team discipline with commit conventions",
+      "BMAD workflow execution requires manual triggering by developers"
+    ],
+    "dependencies": [
+      "GitHub Actions for CI/CD and cross-repository sync",
+      "CurryDash-Admin-Seller-Portal repository for backend documentation triggers",
+      "CurryDash-UserApp-Mobile_Web-Flutter repository for frontend documentation triggers",
+      "GitHub Personal Access Token for repository dispatch",
+      "Vercel/GitHub Pages/GCP for hosting deployment"
+    ]
+  },
+  "created_at": "2026-01-22T04:15:00Z",
+  "inputDocuments": {
+    "prd_path": "_bmad-output/planning-artifacts/prd.md",
+    "ux_spec_path": "_bmad-output/planning-artifacts/ux-design-specification.md",
+    "bmad_artifacts_scanned": true,
+    "scanned_at": "2026-01-22T14:00:00Z"
+  }
+}

@@ -1,0 +1,1177 @@
+{
+  "id": "roadmap-20260122",
+  "project_name": "CurryDash Docs",
+  "version": "2.0",
+  "vision": "A centralized, automatically-synchronized documentation platform for the CurryDash Sri Lankan food delivery service ecosystem.",
+  "target_audience": {
+    "primary": "Software developers building and maintaining the CurryDash food delivery platform (Laravel backend and Flutter frontend developers)",
+    "secondary": [
+      "Food vendors and restaurant owners using the Seller Portal",
+      "Platform administrators managing the CurryDash system",
+      "DevOps engineers handling deployment and infrastructure",
+      "Technical writers maintaining documentation"
+    ]
+  },
+  "phases": [
+    {
+      "id": "phase-0",
+      "name": "Critical Fixes (Week 1 Blockers)",
+      "description": "Address critical P0 blockers that prevent basic usability of the documentation site. Fix sidebar visibility, TOC navigation, and validate Tailwind v4 CSS compatibility.",
+      "order": 0,
+      "status": "planned",
+      "features": [
+        "feature-19",
+        "feature-20",
+        "feature-21",
+        "feature-22"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-0-1",
+          "title": "Navigation Functional",
+          "description": "Sidebar and TOC navigation visible and working on all viewport sizes",
+          "features": [
+            "feature-19",
+            "feature-20"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-0-2",
+          "title": "Styling Stable",
+          "description": "Tailwind v4 CSS validated and dark mode toggle functional",
+          "features": [
+            "feature-21",
+            "feature-22"
+          ],
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "phase-1",
+      "name": "Foundation & Content Quality",
+      "description": "Establish a solid documentation foundation by completing API coverage, migrating legacy content, enriching existing docs with examples, and setting up multi-audience navigation structure. Focus on eliminating technical debt and ensuring baseline quality.",
+      "order": 1,
+      "status": "planned",
+      "features": [
+        "feature-1",
+        "feature-2",
+        "feature-3",
+        "feature-4",
+        "feature-5",
+        "feature-6",
+        "feature-23",
+        "feature-24",
+        "feature-25"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-1-1",
+          "title": "API Documentation Complete",
+          "description": "All REST API endpoints documented with examples, request/response schemas, and error codes",
+          "features": [
+            "feature-1",
+            "feature-2"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-1-2",
+          "title": "Content Migration Complete",
+          "description": "All legacy documentation migrated, validated, and outdated templates removed",
+          "features": [
+            "feature-3",
+            "feature-5"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-1-3",
+          "title": "Cross-Repo Sync Validated",
+          "description": "Documentation sync workflow tested end-to-end with both source repositories",
+          "features": [
+            "feature-4",
+            "feature-6"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-1-4",
+          "title": "Multi-Audience Navigation Live",
+          "description": "Five audience sections with audience selector cards on homepage and proper _meta.js structure",
+          "features": [
+            "feature-23",
+            "feature-24",
+            "feature-25"
+          ],
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Cross-Repo Automation & Polish",
+      "description": "Implement GitHub Actions workflows for automatic documentation sync from source repositories. Set up semantic release, optimize performance for Lighthouse 90+, and create llms.txt for AI discoverability.",
+      "order": 2,
+      "status": "planned",
+      "features": [
+        "feature-26",
+        "feature-27",
+        "feature-28",
+        "feature-29",
+        "feature-30"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-2-1",
+          "title": "GitHub Actions Workflows Deployed",
+          "description": "notify-docs.yml and sync-from-repos.yml workflows operational",
+          "features": [
+            "feature-26",
+            "feature-27"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-2-2",
+          "title": "Release & Performance Optimized",
+          "description": "Semantic release configured, Lighthouse 90+ achieved, llms.txt created",
+          "features": [
+            "feature-28",
+            "feature-29",
+            "feature-30"
+          ],
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "User Experience Enhancement",
+      "description": "Improve the developer experience with interactive features, better onboarding resources, quick-start guides, feedback mechanisms, and brand-aligned visual design. Make documentation more accessible and useful for all audience segments.",
+      "order": 3,
+      "status": "planned",
+      "features": [
+        "feature-7",
+        "feature-8",
+        "feature-9",
+        "feature-10",
+        "feature-11",
+        "feature-31",
+        "feature-32",
+        "feature-33",
+        "feature-34"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-3-1",
+          "title": "Interactive API Testing Live",
+          "description": "Developers can test API endpoints directly from documentation without external tools",
+          "features": [
+            "feature-7"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-3-2",
+          "title": "Onboarding Experience Complete",
+          "description": "Role-specific quick start guides and architecture overview available for all audiences",
+          "features": [
+            "feature-8",
+            "feature-9"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-3-3",
+          "title": "Feedback Loop Established",
+          "description": "Users can provide documentation feedback and see documentation freshness indicators",
+          "features": [
+            "feature-10",
+            "feature-11"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-3-4",
+          "title": "Brand Visual Identity Applied",
+          "description": "UX spec visual requirements implemented: copy button feedback, brand colors, typography, and content width",
+          "features": [
+            "feature-31",
+            "feature-32",
+            "feature-33",
+            "feature-34"
+          ],
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Scale & Analytics",
+      "description": "Add versioning support for multiple documentation versions, implement analytics to understand usage patterns, and enable offline access through PDF export. Scale the platform for growing team needs.",
+      "order": 4,
+      "status": "planned",
+      "features": [
+        "feature-12",
+        "feature-13",
+        "feature-14",
+        "feature-15"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-4-1",
+          "title": "Multi-Version Documentation",
+          "description": "Support for multiple documentation versions aligned with platform releases",
+          "features": [
+            "feature-12"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-4-2",
+          "title": "Analytics Dashboard Live",
+          "description": "Documentation usage analytics providing insights on popular pages, search patterns, and user behavior",
+          "features": [
+            "feature-13",
+            "feature-14"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-4-3",
+          "title": "Offline Access Available",
+          "description": "Users can export documentation as PDF for offline reference",
+          "features": [
+            "feature-15"
+          ],
+          "status": "planned"
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "Advanced Features & Global Reach",
+      "description": "Expand documentation reach through internationalization, video content, and advanced integration capabilities. Position the platform for international expansion and enhanced learning experiences.",
+      "order": 5,
+      "status": "planned",
+      "features": [
+        "feature-16",
+        "feature-17",
+        "feature-18"
+      ],
+      "milestones": [
+        {
+          "id": "milestone-5-1",
+          "title": "Internationalization Ready",
+          "description": "Documentation framework supports multiple languages with Sinhala and Tamil as priorities",
+          "features": [
+            "feature-16"
+          ],
+          "status": "planned"
+        },
+        {
+          "id": "milestone-5-2",
+          "title": "Multimedia Documentation",
+          "description": "Video tutorials and interactive guides embedded in key documentation sections",
+          "features": [
+            "feature-17",
+            "feature-18"
+          ],
+          "status": "planned"
+        }
+      ]
+    }
+  ],
+  "features": [
+    {
+      "id": "feature-1",
+      "title": "Complete API Reference Documentation",
+      "description": "Audit and complete API documentation for all REST endpoints across the CurryDash Laravel backend. Include request/response schemas, authentication requirements, rate limits, and error codes for every endpoint.",
+      "rationale": "Developers need accurate API documentation to integrate with the platform. Incomplete API docs lead to trial-and-error development, wasted time, and integration bugs. This directly addresses the user goal of finding accurate API documentation for integration work.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "All REST API endpoints are documented in the API Reference section",
+        "Each endpoint has method, URL, description, parameters, request body schema, response schema, and error codes",
+        "Authentication requirements are clearly specified for each endpoint",
+        "Rate limiting information is documented where applicable",
+        "API documentation passes validation against actual API implementation"
+      ],
+      "user_stories": [
+        "As a frontend developer, I want to see complete API endpoint documentation so that I can integrate Flutter apps without guessing API behavior",
+        "As a third-party integrator, I want to understand authentication requirements so that I can securely access CurryDash APIs"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-2",
+      "title": "Code Examples & Snippets Enhancement",
+      "description": "Enrich documentation with practical code examples in relevant languages (PHP/Laravel, Dart/Flutter, TypeScript). Include copy-to-clipboard functionality, syntax highlighting, and runnable examples where applicable.",
+      "rationale": "Code examples dramatically reduce time-to-implementation. Developers learn faster through examples than prose. This addresses the pain point of documentation needing enrichment with more examples and code samples.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Every API endpoint has at least one code example in PHP and one in Dart",
+        "Code examples include proper error handling patterns",
+        "All code snippets have copy-to-clipboard functionality",
+        "Syntax highlighting works correctly for PHP, Dart, TypeScript, and JSON",
+        "Examples are tested and verified to work with current API versions"
+      ],
+      "user_stories": [
+        "As a Laravel developer, I want to see PHP code examples so that I can quickly implement backend integrations",
+        "As a Flutter developer, I want to see Dart code examples so that I can copy and adapt them for my mobile app"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-3",
+      "title": "Legacy Documentation Migration",
+      "description": "Migrate all valuable content from the docs-legacy/ directory into the main Nextra documentation structure. Consolidate, update, and modernize legacy documentation while removing obsolete information. PRD specifies: Backend PRD (10 docs), Architecture (24 docs), Mobile (10 docs) - total 61 legacy docs.",
+      "rationale": "Technical debt in the form of unmigrated legacy docs creates confusion and maintenance burden. Users may find outdated information. This addresses the technical debt of legacy docs needing migration/consolidation.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "All relevant content from docs-legacy/ is migrated to appropriate sections",
+        "Migrated content is updated to reflect current system behavior",
+        "docs-legacy/ directory is archived or removed after migration",
+        "No broken internal links exist after migration",
+        "Redirect rules are in place for any external links to legacy URLs",
+        "61 legacy documents accounted for (Backend PRD: 10, Architecture: 24, Mobile: 10)"
+      ],
+      "user_stories": [
+        "As a team member, I want all documentation in one place so that I don't have to search multiple locations",
+        "As a new developer, I want only current documentation so that I don't accidentally follow outdated instructions"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-4",
+      "title": "Cross-Repository Sync Validation",
+      "description": "Test and validate the BMAD Method documentation sync workflow with actual triggers from currydash-admin-vendor-portal and currydash-mobile repositories. Ensure end-to-end sync reliability.",
+      "rationale": "The automatic sync capability is a key differentiator. Without validation, sync failures could go unnoticed, leading to stale documentation. This addresses the user goal of keeping documentation automatically synchronized with code changes.",
+      "priority": "must",
+      "complexity": "low",
+      "impact": "high",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Sync workflow tested with real commits from backend repository",
+        "Sync workflow tested with real commits from mobile repository",
+        "Change spec files (.doc-changes/) are correctly generated",
+        "Documentation updates are applied within 24 hours of code merge",
+        "Error notifications are sent if sync fails",
+        "Sync status is visible in GitHub Actions dashboard"
+      ],
+      "user_stories": [
+        "As a developer, I want documentation to automatically update when I merge code so that docs never become stale",
+        "As a DevOps engineer, I want to see sync status so that I can troubleshoot any workflow failures"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-5",
+      "title": "Placeholder Content Audit & Replacement",
+      "description": "Systematically identify and replace all placeholder content, TODO markers, and incomplete sections across the documentation. Ensure every published page has complete, production-quality content.",
+      "rationale": "Placeholder content damages credibility and frustrates users looking for real information. This addresses the technical debt of placeholder content existing in audience-specific sections.",
+      "priority": "must",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Automated scan identifies all TODO, TBD, placeholder, and [REPLACE] markers",
+        "Each placeholder is replaced with actual content or the page is marked as draft",
+        "No placeholder text visible to end users",
+        "Content review checklist is created for ongoing quality assurance",
+        "CI/CD pipeline includes placeholder detection warning"
+      ],
+      "user_stories": [
+        "As a user, I want to see complete information on every page so that I can trust the documentation",
+        "As a technical writer, I want to easily find incomplete sections so that I can prioritize content creation"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-6",
+      "title": "Outdated Templates Cleanup",
+      "description": "Remove or archive the outdated templates in 'bmad-docops/templates - outdated' folder. Ensure all active templates are current and documented.",
+      "rationale": "Outdated templates create confusion and risk of using deprecated patterns. Clean organization improves maintainability. This addresses the technical debt of outdated templates.",
+      "priority": "must",
+      "complexity": "low",
+      "impact": "low",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Outdated templates folder is archived or removed",
+        "Active templates are documented with usage instructions",
+        "No references to outdated templates exist in codebase",
+        "Template versioning strategy is documented"
+      ],
+      "user_stories": [
+        "As a documentation maintainer, I want clear template organization so that I use the correct templates",
+        "As a new team member, I want to know which templates are current so that I don't use deprecated ones"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-7",
+      "title": "Interactive API Playground",
+      "description": "Implement an interactive API testing interface within the documentation. Allow developers to make live API calls, see responses, and experiment with endpoints without leaving the docs site.",
+      "rationale": "Interactive API testing reduces the friction of learning and integrating APIs. Developers can validate their understanding immediately. This addresses the known gap of interactive API playground/testing not being implemented.",
+      "priority": "should",
+      "complexity": "high",
+      "impact": "high",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-1"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "API playground component integrated into API reference pages",
+        "Users can enter parameters and make live API requests",
+        "Request/response is displayed with syntax highlighting",
+        "Authentication can be configured once and persisted",
+        "Playground works with all documented endpoints",
+        "Rate limiting is respected and communicated to users"
+      ],
+      "user_stories": [
+        "As a developer, I want to test API endpoints directly in the docs so that I can verify my understanding before writing code",
+        "As a QA engineer, I want to quickly test endpoint behavior so that I can validate API changes"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-8",
+      "title": "Role-Specific Quick Start Guides",
+      "description": "Create comprehensive quick start guides tailored for each audience segment: developers (backend/frontend), vendors, administrators, and DevOps engineers. Each guide provides a 15-minute path to first success.",
+      "rationale": "Different audiences have different needs and starting points. Tailored quick starts reduce onboarding time and improve first impressions. This addresses the user goal of onboarding new team members efficiently.",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-2"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Quick start guide exists for Laravel backend developers",
+        "Quick start guide exists for Flutter frontend developers",
+        "Quick start guide exists for food vendors using Seller Portal",
+        "Quick start guide exists for platform administrators",
+        "Quick start guide exists for DevOps engineers",
+        "Each guide is completable in under 15 minutes",
+        "Guides include screenshots and step-by-step instructions"
+      ],
+      "user_stories": [
+        "As a new backend developer, I want a quick start guide so that I can contribute to the codebase within my first day",
+        "As a restaurant owner, I want a vendor quick start so that I can set up my store on CurryDash quickly"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-9",
+      "title": "Platform Architecture Overview",
+      "description": "Create a comprehensive architecture documentation section with system diagrams, data flow visualizations, component interactions, and technology stack overview. Help users understand the big picture.",
+      "rationale": "Understanding the overall architecture is essential for effective development and troubleshooting. This addresses the user goal of quickly understanding the CurryDash platform architecture.",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-3",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "High-level architecture diagram shows all major components",
+        "Data flow diagrams illustrate key user journeys (ordering, delivery, payment)",
+        "Technology stack is documented with version requirements",
+        "Repository relationships are visualized",
+        "Deployment architecture is documented",
+        "Diagrams are created with maintainable tools (Mermaid or similar)"
+      ],
+      "user_stories": [
+        "As a new developer, I want to see the system architecture so that I understand how components interact",
+        "As an integration partner, I want to understand the data flow so that I can plan my integration correctly"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-10",
+      "title": "Documentation Feedback System",
+      "description": "Implement a feedback mechanism allowing users to rate page helpfulness, report issues, and suggest improvements. Integrate with GitHub Issues or similar for tracking.",
+      "rationale": "User feedback is essential for continuous improvement. Knowing which pages are problematic helps prioritize content updates. This supports the success metric of positive feedback from all audience segments.",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-3",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Every documentation page has a feedback widget",
+        "Users can rate pages as helpful/not helpful",
+        "Users can report specific issues or suggest edits",
+        "Feedback is routed to GitHub Issues with proper labels",
+        "Dashboard shows feedback trends and problematic pages",
+        "Anonymous feedback is supported"
+      ],
+      "user_stories": [
+        "As a documentation user, I want to report unclear content so that it can be improved",
+        "As a documentation maintainer, I want to see which pages get negative feedback so that I can prioritize fixes"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-11",
+      "title": "Documentation Freshness Indicators",
+      "description": "Display last-updated timestamps, sync status, and freshness indicators on documentation pages. Help users understand how current the information is.",
+      "rationale": "Users need to trust documentation currency. Visible timestamps and sync status build confidence and help identify potentially stale content. This supports the success metric of documentation freshness.",
+      "priority": "should",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-4"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Every page displays last-updated date",
+        "Pages synced from code repos show sync source and date",
+        "Visual indicator for pages not updated in 90+ days",
+        "Freshness data is automatically extracted from git history",
+        "API reference pages show API version they document"
+      ],
+      "user_stories": [
+        "As a developer, I want to see when a page was last updated so that I know if the information is current",
+        "As a technical writer, I want to identify stale pages so that I can prioritize reviews"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-12",
+      "title": "Versioned Documentation Support",
+      "description": "Implement support for multiple documentation versions aligned with platform releases. Allow users to switch between versions and see version-specific content.",
+      "rationale": "As CurryDash evolves, users on older versions need access to matching documentation. Version support prevents confusion from mismatched docs. This addresses the known gap of versioned documentation not being supported.",
+      "priority": "should",
+      "complexity": "high",
+      "impact": "high",
+      "phase_id": "phase-4",
+      "dependencies": [
+        "feature-4"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Version selector available in documentation header",
+        "At least 3 versions can be maintained simultaneously",
+        "Version-specific content is isolated and searchable",
+        "Default version is clearly indicated",
+        "Deprecation warnings shown on older versions",
+        "Semantic versioning is used for documentation versions"
+      ],
+      "user_stories": [
+        "As a developer on an older platform version, I want to access matching documentation so that I don't get confused by new features",
+        "As a DevOps engineer, I want to see what changed between versions so that I can plan upgrades"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-13",
+      "title": "Documentation Analytics Dashboard",
+      "description": "Implement analytics tracking for documentation usage. Track page views, search queries, time on page, and navigation patterns. Provide insights dashboard for documentation maintainers.",
+      "rationale": "Data-driven documentation improvement requires usage analytics. Understanding what users search for and where they struggle enables targeted improvements. This addresses the known gap of analytics not being implemented.",
+      "priority": "could",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-4",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Page view tracking implemented with privacy-respecting approach",
+        "Search query analytics captured from Pagefind",
+        "Time on page and bounce rate tracked",
+        "Dashboard shows most/least popular pages",
+        "Search analytics show queries with no results",
+        "GDPR/privacy compliance maintained"
+      ],
+      "user_stories": [
+        "As a documentation maintainer, I want to see which pages are most visited so that I can prioritize their quality",
+        "As a product manager, I want to see what users search for so that I can identify documentation gaps"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-14",
+      "title": "Search Analytics & Improvement",
+      "description": "Analyze search patterns to identify gaps and improve search effectiveness. Implement search suggestions, synonyms, and popular searches to enhance discoverability.",
+      "rationale": "Search is a critical documentation feature. Understanding failed searches reveals content gaps. Search improvements directly impact user success. This supports the success metric of search effectiveness.",
+      "priority": "could",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-4",
+      "dependencies": [
+        "feature-13"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Failed search queries are logged and reviewed",
+        "Search synonyms configured for common variations",
+        "Popular searches displayed as suggestions",
+        "Search results improved based on analytics",
+        "Search covers all documentation content including API specs"
+      ],
+      "user_stories": [
+        "As a user, I want search suggestions so that I can find content even if I don't know exact terms",
+        "As a documentation maintainer, I want to see failed searches so that I can add missing content"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-15",
+      "title": "PDF Export & Offline Documentation",
+      "description": "Enable users to export documentation sections or entire guides as PDF for offline reference. Support selective export and formatted printing.",
+      "rationale": "Some users need offline access, especially in areas with limited connectivity. PDF export also enables printing for training sessions. This addresses the known gap of PDF/offline docs not being available.",
+      "priority": "could",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-4",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Users can export individual pages as PDF",
+        "Users can export entire sections/guides as PDF",
+        "PDFs maintain formatting, code highlighting, and images",
+        "PDFs include table of contents for longer exports",
+        "Export includes last-updated date and version info",
+        "Print-friendly CSS styles available"
+      ],
+      "user_stories": [
+        "As a vendor, I want to download a PDF guide so that I can reference it when I don't have internet",
+        "As a trainer, I want to print documentation so that I can use it in offline training sessions"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-16",
+      "title": "Internationalization (i18n) Framework",
+      "description": "Implement internationalization support allowing documentation to be translated into multiple languages. Prioritize Sinhala and Tamil for the Sri Lankan market.",
+      "rationale": "CurryDash serves Sri Lanka where Sinhala and Tamil are primary languages. Vendors and some users may prefer native language documentation. This addresses the known gap of i18n not being configured.",
+      "priority": "could",
+      "complexity": "high",
+      "impact": "medium",
+      "phase_id": "phase-5",
+      "dependencies": [],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "i18n framework integrated with Nextra configuration",
+        "Language selector available in documentation header",
+        "English documentation serves as source of truth",
+        "Translation workflow documented for contributors",
+        "Sinhala and Tamil prioritized for vendor-facing content",
+        "URLs follow /[locale]/[path] pattern"
+      ],
+      "user_stories": [
+        "As a Sri Lankan vendor, I want to read vendor documentation in Sinhala so that I understand it better",
+        "As a documentation translator, I want a clear workflow so that I can contribute translations efficiently"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-17",
+      "title": "Video Tutorial Integration",
+      "description": "Create and embed video tutorials for key workflows and concepts. Cover platform setup, common tasks for each audience, and troubleshooting guides.",
+      "rationale": "Video content accelerates learning for visual learners and complex workflows. Some users prefer video over text. This addresses the known gap of video tutorials not being created.",
+      "priority": "could",
+      "complexity": "high",
+      "impact": "high",
+      "phase_id": "phase-5",
+      "dependencies": [
+        "feature-8"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Video player component integrated into documentation",
+        "At least 5 tutorial videos covering key workflows created",
+        "Videos have captions for accessibility",
+        "Video content is version-tagged",
+        "Hosting solution identified (YouTube, self-hosted, etc.)",
+        "Videos embedded at relevant documentation sections"
+      ],
+      "user_stories": [
+        "As a visual learner, I want to watch tutorials so that I can learn complex workflows more easily",
+        "As a new vendor, I want video guides so that I can set up my store by following along"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-18",
+      "title": "Interactive Walkthrough Guides",
+      "description": "Implement interactive step-by-step guides that walk users through complex processes with progress tracking, checkboxes, and contextual help.",
+      "rationale": "Interactive guides improve completion rates for complex tasks. Progress tracking helps users resume where they left off. This addresses the known gap of interactive guides not being created.",
+      "priority": "could",
+      "complexity": "high",
+      "impact": "medium",
+      "phase_id": "phase-5",
+      "dependencies": [
+        "feature-8"
+      ],
+      "status": "under_review",
+      "acceptance_criteria": [
+        "Interactive guide component built for documentation",
+        "Guides have checkable steps with progress tracking",
+        "Progress is persisted in browser storage",
+        "At least 3 interactive guides created (onboarding, API integration, deployment)",
+        "Guides can be reset and restarted",
+        "Mobile-friendly design"
+      ],
+      "user_stories": [
+        "As a new developer, I want an interactive onboarding guide so that I don't miss any setup steps",
+        "As a vendor, I want to track my setup progress so that I can continue where I left off"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-19",
+      "title": "Fix Sidebar CSS Visibility",
+      "description": "Fix the sidebar CSS visibility issue that prevents the navigation from displaying correctly on desktop viewports. This is a P0 blocker identified in the PRD.",
+      "rationale": "The sidebar navigation is completely invisible or broken on desktop, making the entire documentation site unusable. Users cannot navigate between documentation pages. This is the highest priority issue blocking all usability.",
+      "priority": "must",
+      "complexity": "low",
+      "impact": "high",
+      "phase_id": "phase-0",
+      "dependencies": [],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Sidebar navigation is visible on desktop viewports (1024px+)",
+        "Sidebar navigation is visible on tablet viewports (768px-1023px)",
+        "Sidebar collapses appropriately on mobile viewports (<768px)",
+        "All navigation links are clickable and functional",
+        "Sidebar styling matches Nextra theme expectations"
+      ],
+      "user_stories": [
+        "As a documentation user, I want to see the sidebar navigation so that I can browse documentation sections",
+        "As a developer, I want navigation to work so that I can find API reference and guides"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-20",
+      "title": "Fix TOC 'On This Page' Visibility",
+      "description": "Fix the Table of Contents (TOC) 'On This Page' component that is not rendering or visible. This is a P0 blocker identified in the PRD.",
+      "rationale": "The 'On This Page' TOC component helps users navigate within long documentation pages. Without it, users must scroll through entire pages to find specific sections, severely impacting usability.",
+      "priority": "must",
+      "complexity": "low",
+      "impact": "high",
+      "phase_id": "phase-0",
+      "dependencies": [],
+      "status": "planned",
+      "acceptance_criteria": [
+        "TOC 'On This Page' component renders on pages with multiple headings",
+        "TOC shows all h2 and h3 headings from the page content",
+        "Clicking TOC links scrolls to the correct section",
+        "TOC highlights the currently visible section",
+        "TOC is positioned correctly in the page layout (typically right sidebar)"
+      ],
+      "user_stories": [
+        "As a documentation reader, I want to see page sections so that I can jump to relevant content",
+        "As a developer, I want in-page navigation so that I can quickly find specific API details"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-21",
+      "title": "Validate Tailwind v4 CSS Compatibility",
+      "description": "Audit and fix all Tailwind v4 CSS issues across the 380+ lines of custom CSS. Ensure compatibility with Nextra theme and proper rendering of all components.",
+      "rationale": "Tailwind v4 has breaking changes from v3. The custom CSS may use deprecated utilities or incompatible syntax, causing styling issues throughout the documentation site. This must be validated before other visual work can proceed.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-0",
+      "dependencies": [],
+      "status": "planned",
+      "acceptance_criteria": [
+        "All custom CSS validated against Tailwind v4 syntax",
+        "Deprecated Tailwind v3 utilities replaced with v4 equivalents",
+        "No CSS compilation errors or warnings",
+        "All documentation pages render correctly with no visual breaks",
+        "Code blocks, tables, and callouts display properly",
+        "Responsive layouts work at all breakpoints"
+      ],
+      "user_stories": [
+        "As a documentation maintainer, I want CSS to compile without errors so that styling is predictable",
+        "As a user, I want pages to display correctly so that I can read documentation comfortably"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-22",
+      "title": "Dark Mode Toggle Functional",
+      "description": "Ensure the dark mode toggle works correctly and persists user preference. Implement proper dark mode styling across all components.",
+      "rationale": "Dark mode is a standard expectation for developer documentation. The PRD identifies this as a P1 priority for brand polish. Users should be able to switch between light and dark modes based on preference or environment.",
+      "priority": "should",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-0",
+      "dependencies": [
+        "feature-21"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Dark mode toggle is visible and accessible in the header/navbar",
+        "Clicking toggle switches between light and dark modes",
+        "User preference is persisted in localStorage",
+        "System preference (prefers-color-scheme) is respected as default",
+        "All components have appropriate dark mode styles",
+        "Code blocks have dark-mode-appropriate syntax highlighting"
+      ],
+      "user_stories": [
+        "As a developer working late, I want dark mode so that the screen isn't harsh on my eyes",
+        "As a user, I want my theme preference saved so that it persists across visits"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-23",
+      "title": "Multi-Audience Navigation Structure",
+      "description": "Implement the 5-section multi-audience navigation structure as specified in the PRD: Developers (Backend), Developers (Frontend/Mobile), Vendors, Administrators, and API Reference.",
+      "rationale": "Different audiences have different documentation needs. The PRD specifies a clear 5-section structure that routes each audience to relevant content. This is fundamental to the documentation architecture.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-1",
+      "dependencies": [
+        "feature-19"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Navigation includes all 5 audience sections",
+        "Each section has appropriate sub-navigation",
+        "Section icons or visual indicators distinguish audiences",
+        "_meta.js files properly configure navigation order and labels",
+        "Cross-links between sections work correctly",
+        "Mobile navigation includes all sections with proper hierarchy"
+      ],
+      "user_stories": [
+        "As a backend developer, I want to quickly find Laravel-specific documentation",
+        "As a vendor, I want vendor-focused content without wading through developer docs"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-24",
+      "title": "Audience Selector Cards (Homepage)",
+      "description": "Implement audience selector cards on the homepage as specified in the UX spec. Cards should help users quickly identify and navigate to their relevant documentation section.",
+      "rationale": "The homepage is the entry point for most users. Audience selector cards immediately help users find relevant content, reducing time to value. This is a key UX spec requirement for guiding different user types.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-1",
+      "dependencies": [
+        "feature-23"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Homepage displays 5 audience selector cards",
+        "Each card has icon, title, and brief description",
+        "Cards link to respective audience sections",
+        "Cards have hover states and are visually appealing",
+        "Responsive layout: 2-3 columns on desktop, 1-2 on mobile",
+        "Cards follow brand color guidelines"
+      ],
+      "user_stories": [
+        "As a first-time visitor, I want to quickly identify which section is for me",
+        "As a vendor, I want a clear path to vendor documentation from the homepage"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-25",
+      "title": "Root _meta.js Restructure",
+      "description": "Restructure the root _meta.js file to properly define the multi-audience navigation hierarchy with correct ordering, labels, and metadata for all 5 audience sections.",
+      "rationale": "Nextra uses _meta.js files to control navigation structure. Proper configuration is required for the multi-audience navigation to work correctly and display in the intended order.",
+      "priority": "must",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-1",
+      "dependencies": [],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Root _meta.js defines all 5 audience sections",
+        "Navigation order matches PRD specification",
+        "Each section has appropriate title and type",
+        "Hidden sections (like _app, _document) are properly excluded",
+        "Theme configuration options are properly set",
+        "Nested _meta.js files in each section are consistent"
+      ],
+      "user_stories": [
+        "As a documentation maintainer, I want clear navigation configuration so that I can easily update structure",
+        "As a user, I want consistent navigation order across all pages"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-26",
+      "title": "GitHub Actions notify-docs.yml",
+      "description": "Implement the notify-docs.yml GitHub Actions workflow in source repositories (currydash-admin-vendor-portal, currydash-mobile) to trigger documentation updates when code changes are merged.",
+      "rationale": "The PRD specifies automatic documentation sync from source repositories. The notify-docs.yml workflow is the trigger mechanism that notifies the docs repo of changes requiring documentation updates.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-2",
+      "dependencies": [
+        "feature-4"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "notify-docs.yml workflow created for backend repository",
+        "notify-docs.yml workflow created for mobile repository",
+        "Workflow triggers on merge to main branch",
+        "Workflow extracts story IDs from commit messages",
+        "Workflow dispatches repository_dispatch event to docs repo",
+        "Proper authentication via GitHub PAT configured"
+      ],
+      "user_stories": [
+        "As a developer, I want docs to auto-update when I merge code",
+        "As a DevOps engineer, I want the trigger workflow to be reliable and debuggable"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-27",
+      "title": "GitHub Actions sync-from-repos.yml",
+      "description": "Implement the sync-from-repos.yml GitHub Actions workflow in the docs repository to receive triggers and process documentation updates from source repositories.",
+      "rationale": "This workflow receives notifications from source repos and creates change spec files for documentation updates. It's the receiving end of the cross-repository sync architecture specified in the PRD.",
+      "priority": "must",
+      "complexity": "medium",
+      "impact": "high",
+      "phase_id": "phase-2",
+      "dependencies": [
+        "feature-26"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "sync-from-repos.yml workflow responds to repository_dispatch events",
+        "Workflow creates .doc-changes/STORY-XXX.yaml change spec files",
+        "Change spec includes source repo, commit info, and story ID",
+        "Workflow can be triggered manually for testing",
+        "Proper error handling and notifications on failure",
+        "Workflow logs visible in GitHub Actions dashboard"
+      ],
+      "user_stories": [
+        "As a technical writer, I want change specs created automatically so I know what needs documentation",
+        "As a DevOps engineer, I want to monitor sync workflow status and debug failures"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-28",
+      "title": "Semantic Release Setup",
+      "description": "Configure semantic-release for automated versioning and changelog generation based on conventional commits. Ensure proper version bumps for documentation changes.",
+      "rationale": "The PRD specifies semantic versioning for documentation releases. Automated versioning ensures consistent release management and generates changelogs for tracking documentation evolution.",
+      "priority": "should",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-2",
+      "dependencies": [],
+      "status": "planned",
+      "acceptance_criteria": [
+        "semantic-release package configured in package.json",
+        "Release configuration in release.config.js",
+        "Conventional commit validation via commitlint",
+        "CHANGELOG.md generated automatically on release",
+        "Version tags created in git",
+        "Release workflow triggers on merge to main"
+      ],
+      "user_stories": [
+        "As a documentation maintainer, I want automatic versioning so I don't have to manually update versions",
+        "As a user, I want to see a changelog to understand what's new in documentation"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-29",
+      "title": "Lighthouse 90+ Optimization",
+      "description": "Optimize the documentation site to achieve Lighthouse scores of 90+ in Performance, Accessibility, Best Practices, and SEO categories.",
+      "rationale": "The PRD specifies Lighthouse 90+ as a quality target. High Lighthouse scores ensure fast load times, accessible content, and good SEO, benefiting all users especially those on slower connections.",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-2",
+      "dependencies": [
+        "feature-21"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Performance score 90+ on Lighthouse",
+        "Accessibility score 90+ on Lighthouse",
+        "Best Practices score 90+ on Lighthouse",
+        "SEO score 90+ on Lighthouse",
+        "Core Web Vitals (LCP, FID, CLS) within green thresholds",
+        "Lighthouse CI integrated into build pipeline"
+      ],
+      "user_stories": [
+        "As a user on a slow connection, I want pages to load quickly",
+        "As a user with accessibility needs, I want the site to be fully accessible"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-30",
+      "title": "llms.txt File Creation",
+      "description": "Create an llms.txt file for AI/LLM discoverability, making the documentation content more accessible to AI assistants and search tools.",
+      "rationale": "The PRD identifies llms.txt as a nice-to-have for AI discoverability. As AI assistants become more common for developer queries, having structured metadata improves how AI tools can reference and recommend documentation.",
+      "priority": "could",
+      "complexity": "low",
+      "impact": "low",
+      "phase_id": "phase-2",
+      "dependencies": [],
+      "status": "planned",
+      "acceptance_criteria": [
+        "llms.txt file created in public root",
+        "File follows llms.txt specification format",
+        "Key documentation sections and their purposes described",
+        "API endpoints and their documentation paths listed",
+        "File is accessible at /llms.txt URL",
+        "File is kept up-to-date with documentation structure changes"
+      ],
+      "user_stories": [
+        "As a developer using AI assistants, I want AI to find relevant CurryDash docs for my queries",
+        "As a documentation maintainer, I want AI tools to accurately reference our documentation"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-31",
+      "title": "Copy Button with 'Copied!' Feedback",
+      "description": "Implement Stripe-like copy button functionality on code blocks with 'Copied!' feedback animation as specified in the UX spec.",
+      "rationale": "The UX spec explicitly calls for Stripe-style copy buttons with feedback. This is a small but important polish feature that improves developer experience when copying code examples.",
+      "priority": "should",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-2"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Copy button appears on hover over code blocks",
+        "Clicking copy button copies code to clipboard",
+        "Button shows 'Copied!' text briefly after successful copy",
+        "Animation/transition is smooth and professional",
+        "Button is accessible via keyboard",
+        "Works on all code block types (inline and fenced)"
+      ],
+      "user_stories": [
+        "As a developer, I want one-click copy for code examples",
+        "As a user, I want visual confirmation that code was copied successfully"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-32",
+      "title": "Brand Color Integration (Turmeric Gold)",
+      "description": "Implement the CurryDash brand color palette with Turmeric Gold (#E6B04B) as the primary accent color, as specified in the UX spec.",
+      "rationale": "The UX spec defines specific brand colors including Turmeric Gold (#E6B04B) as the primary accent. Consistent brand colors reinforce identity and provide visual coherence across the documentation.",
+      "priority": "should",
+      "complexity": "medium",
+      "impact": "medium",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-21"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Primary accent color is Turmeric Gold (#E6B04B)",
+        "Color palette defined in Tailwind config",
+        "Brand colors used consistently for links, buttons, and highlights",
+        "Dark mode has appropriate color adjustments",
+        "Color contrast meets WCAG AA accessibility standards",
+        "Documentation of color usage guidelines created"
+      ],
+      "user_stories": [
+        "As a user, I want the docs to feel like part of the CurryDash brand",
+        "As a designer, I want brand colors documented for consistency"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-33",
+      "title": "Typography System (Poppins/Roboto)",
+      "description": "Implement the typography system from the UX spec: Poppins for headings and Roboto for body text, with appropriate font weights and sizes.",
+      "rationale": "The UX spec defines Poppins for headings and Roboto for body text. Proper typography improves readability and establishes visual hierarchy, making documentation easier to scan and read.",
+      "priority": "should",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-21"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Poppins font loaded for headings (h1-h6)",
+        "Roboto font loaded for body text",
+        "Appropriate font weights defined (400, 500, 600, 700)",
+        "Font sizes follow consistent scale",
+        "Line heights optimized for readability",
+        "Fonts loaded efficiently (subset, preload, swap)"
+      ],
+      "user_stories": [
+        "As a reader, I want clear typography so documentation is easy to read",
+        "As a user, I want consistent fonts across all documentation pages"
+      ],
+      "competitor_insight_ids": []
+    },
+    {
+      "id": "feature-34",
+      "title": "720px Content Max-Width",
+      "description": "Implement 720px max-width for main content area as specified in the UX spec for optimal reading line length.",
+      "rationale": "The UX spec specifies 720px max-width for content. Optimal line length (65-75 characters) improves reading speed and comprehension. This is a standard practice for documentation and long-form content.",
+      "priority": "should",
+      "complexity": "low",
+      "impact": "medium",
+      "phase_id": "phase-3",
+      "dependencies": [
+        "feature-21"
+      ],
+      "status": "planned",
+      "acceptance_criteria": [
+        "Main content area has max-width of 720px",
+        "Content is centered with appropriate margins",
+        "Full-width elements (tables, code blocks) can break out if needed",
+        "Responsive behavior on smaller viewports",
+        "Consistent across all documentation pages",
+        "Sidebars not affected by content max-width"
+      ],
+      "user_stories": [
+        "As a reader, I want comfortable line lengths so I don't lose my place",
+        "As a user, I want consistent layout across all pages"
+      ],
+      "competitor_insight_ids": []
+    }
+  ],
+  "metadata": {
+    "created_at": "2026-01-22T12:15:00Z",
+    "updated_at": "2026-01-22T02:42:11.398Z",
+    "generated_by": "roadmap_features agent",
+    "prioritization_framework": "MoSCoW",
+    "competitor_analysis_used": false,
+    "prd_alignment": {
+      "prd_path": "_bmad-output/planning-artifacts/prd.md",
+      "ux_spec_path": "_bmad-output/planning-artifacts/ux-design-specification.md",
+      "aligned_at": "2026-01-22T14:00:00Z"
+    }
+  }
+}

@@ -47,7 +47,10 @@
       "WebSearch",
       "WebFetch(domain:www.mintlify.com)",
       "WebFetch(domain:uxcontent.com)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(node -e \"require\\(''./.auto-claude/roadmap/roadmap.json''\\); console.log\\(''roadmap.json: Valid JSON''\\)\")",
+      "Bash(node -e \"require\\(''./.auto-claude/roadmap/roadmap_discovery.json''\\); console.log\\(''roadmap_discovery.json: Valid JSON''\\)\")",
+      "Bash(node:*)"
     ]
   }
 }
