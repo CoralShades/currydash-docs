@@ -53,14 +53,14 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 | Maintainability | 6 | PSR-12, test coverage, reversible migrations |
 
 **Scale & Complexity:**
-- Primary domain: **Laravel 9.x web application + REST API backend**
+- Primary domain: **Laravel 9.x+ web application + REST API backend**
 - Complexity level: **High** (multi-vendor, subscriptions, payments, real-time)
 - Estimated architectural components: **15-20** (existing + new)
 
 ### Technical Constraints & Dependencies
 
 **Existing Infrastructure (Must Preserve):**
-- Laravel 9.x framework (PHP 8.1+)
+- Laravel 9.x+ framework (PHP 8.1+)
 - MySQL database with 259 migrations
 - Eloquent ORM with global scopes (ZoneScope, RestaurantScope)
 - Laravel Passport for OAuth2/JWT
@@ -98,14 +98,14 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 ### Primary Technology Domain
 
-**Laravel 9.x Brownfield Application** - extending existing multi-vendor food delivery platform
+**Laravel 9.x+ Brownfield Application** - extending existing multi-vendor food delivery platform
 
 This is NOT a greenfield project requiring starter selection. The architectural foundation is already established through the existing StackFood-based codebase.
 
 ### Existing Foundation Analysis
 
 **Core Framework (Preserve):**
-- Laravel 9.x with PHP 8.1+
+- Laravel 9.x+ with PHP 8.1+
 - Eloquent ORM with 143 models
 - Blade templating for admin/vendor dashboards
 - Laravel Passport for JWT authentication
@@ -882,7 +882,7 @@ php artisan route:cache
 ### Coherence Validation ✅
 
 **Decision Compatibility:**
-All architectural decisions work together without conflicts. The Laravel 9.x foundation, Redis unified backend (cache/session/queue), MySQL 8.0 database, and Laravel Passport authentication form a cohesive stack with proven integration patterns.
+All architectural decisions work together without conflicts. The Laravel 9.x+ foundation, Redis unified backend (cache/session/queue), MySQL 8.0+ database, and Laravel Passport authentication form a cohesive stack with proven integration patterns.
 
 **Pattern Consistency:**
 Implementation patterns align with technology choices:
@@ -937,7 +937,7 @@ All potential conflict points addressed:
 **✅ Requirements Analysis**
 - [x] Project context thoroughly analyzed (98 FRs, 53 NFRs)
 - [x] Scale and complexity assessed (high - multi-vendor, subscriptions)
-- [x] Technical constraints identified (Laravel 9.x brownfield)
+- [x] Technical constraints identified (Laravel 9.x+ brownfield)
 - [x] Cross-cutting concerns mapped (8 concerns)
 
 **✅ Architectural Decisions**
@@ -965,7 +965,7 @@ All potential conflict points addressed:
 **Confidence Level:** High
 
 **Key Strengths:**
-- Leverages proven Laravel 9.x brownfield foundation
+- Leverages proven Laravel 9.x+ brownfield foundation
 - Clear service extraction path from CentralLogics
 - Comprehensive pattern documentation for AI agent consistency
 - Complete FR/NFR coverage verified

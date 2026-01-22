@@ -1,6 +1,8 @@
 # Overview
 
-The CurryDash backend is built on **Laravel 9.x** with a **modular architecture** pattern. It serves as the central hub coordinating:
+> **Note**: Technology versions listed below should be verified against production environment. Last verified: 2026-01-22
+
+The CurryDash backend is built on **Laravel 9.x+** with a **modular architecture** pattern. It serves as the central hub coordinating:
 
 - **Admin Dashboard** (CAD Jira project)
 - **Vendor Dashboard** (CAR Jira project)
@@ -21,12 +23,12 @@ The CurryDash backend is built on **Laravel 9.x** with a **modular architecture*
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| **Framework** | Laravel 9.x | PHP web application framework |
+| **Framework** | Laravel 9.x+ | PHP web application framework |
 | **Language** | PHP 8.1+ | Server-side scripting |
-| **Database** | MySQL 8.0 | Relational data storage |
+| **Database** | MySQL 8.0+ | Relational data storage |
 | **Cache** | Redis | Session, cache, queue storage |
 | **Queue** | Laravel Queues | Background job processing |
-| **Storage** | Local / S3 | File storage (images, documents) |
+| **Storage** | Local / S3 / GCS | File storage (images, documents) |
 | **Modules** | nWidart/laravel-modules | Modular architecture |
 
 ## Related Documentation

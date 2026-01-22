@@ -1,9 +1,13 @@
 # Architecture Gaps & Future Improvements
 
+> **Last Verified**: 2026-01-22
+> **Note**: The status of these gaps should be verified against the current codebase. Some items may have been implemented since the original documentation.
+
 ## Critical Gaps (High Priority)
 
-**1. No Test Coverage** (CRITICAL)
-- **Status**: ❌ tests/ directory empty
+**1. Test Coverage** (CRITICAL - STATUS NEEDS VERIFICATION)
+- **Status**: ❌ tests/ directory empty (as of 2025-12-12)
+- **Verification Needed**: Check if test suite has been added
 - **Impact**: High risk of regressions, hard to refactor safely
 - **Recommendation**: Implement comprehensive test suite
   - Unit tests (Services, Models)
@@ -12,15 +16,17 @@
 - **Effort**: 4-6 weeks
 - **JIRA**: Create epic for comprehensive testing
 
-**2. No Service Layer** (HIGH)
-- **Status**: ⚠️ Business logic in Helpers/Traits
+**2. Service Layer** (HIGH - STATUS NEEDS VERIFICATION)
+- **Status**: ⚠️ Business logic in Helpers/Traits, Partial implementation in TaxModule (as of 2025-12-12)
+- **Verification Needed**: Check if service classes have been expanded
 - **Impact**: Hard to test, tight coupling, difficult maintenance
 - **Recommendation**: Refactor to service classes (OrderService, PackageService, etc.)
 - **Effort**: 6-8 weeks (gradual refactoring)
 - **JIRA**: Create refactoring epic
 
-**3. No Queue/Job System** (HIGH)
-- **Status**: ❌ No app/Jobs/ directory
+**3. Queue/Job System** (HIGH - STATUS NEEDS VERIFICATION)
+- **Status**: ❌ No app/Jobs/ directory (as of 2025-12-12)
+- **Verification Needed**: Check if Laravel Jobs have been implemented
 - **Impact**: Slow response times, no async processing
 - **Recommendation**: Implement queue jobs for:
   - Order notifications
@@ -80,16 +86,18 @@
 
 ## Recommendations Priority Matrix
 
-| Priority | Gap | Effort | Impact | Status |
-|----------|-----|--------|--------|--------|
-| 🔴 CRITICAL | Test Coverage | 4-6 weeks | High | Not Started |
-| 🔴 CRITICAL | Service Layer | 6-8 weeks | High | Partial (TaxModule) |
-| 🟡 HIGH | Queue/Jobs | 2-3 weeks | Medium | Not Started |
-| 🟡 HIGH | Caching Strategy | 2-3 weeks | Medium | Ad-hoc |
-| 🟢 MEDIUM | Repository Pattern | 3-4 weeks | Medium | Not Started |
-| 🟢 MEDIUM | API Documentation | 1-2 weeks | Low | Not Started |
-| 🟢 MEDIUM | Event/Listener | 2 weeks | Low | Not Started |
-| 🔵 LOW | WebSockets | 3-4 weeks | Low | Not Started |
-| 🔵 LOW | Package Calendar | 1 week | Low | 50% (branch) |
+> **Action Required**: Verify each status against current codebase. Update "Not Started" items to "In Progress" or "Completed" as appropriate.
+
+| Priority | Gap | Effort | Impact | Status (as of 2025-12-12) | Verification Needed |
+|----------|-----|--------|--------|---------------------------|---------------------|
+| 🔴 CRITICAL | Test Coverage | 4-6 weeks | High | Not Started | ✅ Check if tests added |
+| 🔴 CRITICAL | Service Layer | 6-8 weeks | High | Partial (TaxModule) | ✅ Check service expansion |
+| 🟡 HIGH | Queue/Jobs | 2-3 weeks | Medium | Not Started | ✅ Check Jobs directory |
+| 🟡 HIGH | Caching Strategy | 2-3 weeks | Medium | Ad-hoc | ✅ Check Redis strategy |
+| 🟢 MEDIUM | Repository Pattern | 3-4 weeks | Medium | Not Started | ✅ Check for repositories |
+| 🟢 MEDIUM | API Documentation | 1-2 weeks | Low | Not Started | ✅ Check OpenAPI/Swagger |
+| 🟢 MEDIUM | Event/Listener | 2 weeks | Low | Not Started | ✅ Check Events directory |
+| 🔵 LOW | WebSockets | 3-4 weeks | Low | Not Started | ✅ Check WebSocket impl |
+| 🔵 LOW | Package Calendar | 1 week | Low | 50% (branch CAR-95) | ✅ Check if branch merged |
 
 ---
