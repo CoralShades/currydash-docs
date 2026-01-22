@@ -24,3 +24,4 @@ docs/out/
 
 # Auto Claude data directory
 .auto-claude/
+nul
