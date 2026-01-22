@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\003-validate-tailwind-v4-css-compatibility/**)",
+      "Write(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\003-validate-tailwind-v4-css-compatibility/**)",
+      "Edit(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\003-validate-tailwind-v4-css-compatibility/**)",
+      "Glob(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\003-validate-tailwind-v4-css-compatibility/**)",
+      "Grep(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\003-validate-tailwind-v4-css-compatibility/**)",
+      "Read(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\003-validate-tailwind-v4-css-compatibility\\.auto-claude\\specs\\003-validate-tailwind-v4-css-compatibility/**)",
+      "Write(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\003-validate-tailwind-v4-css-compatibility\\.auto-claude\\specs\\003-validate-tailwind-v4-css-compatibility/**)",
+      "Edit(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\003-validate-tailwind-v4-css-compatibility\\.auto-claude\\specs\\003-validate-tailwind-v4-css-compatibility/**)",
+      "Read(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
+      "Write(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
+      "Edit(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
+      "Glob(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
+      "Grep(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}

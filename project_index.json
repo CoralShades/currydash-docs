@@ -1,0 +1,33 @@
+{
+  "project_type": "single",
+  "services": {
+    "docs": {
+      "path": "./docs",
+      "tech_stack": ["next.js", "nextra", "tailwindcss-v4", "react", "typescript"],
+      "port": 3000,
+      "dev_command": "npm run dev",
+      "build_command": "npm run build",
+      "test_command": "npm run lint"
+    }
+  },
+  "infrastructure": {
+    "docker": false,
+    "database": null,
+    "package_manager": "npm"
+  },
+  "conventions": {
+    "css_framework": "tailwindcss-v4",
+    "css_patterns": "@apply directive, @theme for custom properties",
+    "component_pattern": "MDX components with Nextra theme",
+    "linter": "next/lint",
+    "formatter": null
+  },
+  "key_files": {
+    "main_css": "docs/app/globals.css",
+    "tailwind_config": null,
+    "postcss_config": "docs/postcss.config.mjs",
+    "next_config": "docs/next.config.mjs",
+    "layout": "docs/app/layout.tsx",
+    "mdx_components": "docs/mdx-components.tsx"
+  }
+}

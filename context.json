@@ -1,0 +1,64 @@
+{
+  "files_to_modify": {
+    "docs": [
+      "docs/app/globals.css"
+    ]
+  },
+  "files_to_audit": {
+    "docs": [
+      "docs/app/globals.css",
+      "docs/app/layout.tsx",
+      "docs/mdx-components.tsx",
+      "docs/content/**/*.mdx"
+    ]
+  },
+  "files_to_reference": [
+    "docs/postcss.config.mjs",
+    "docs/package.json"
+  ],
+  "patterns": {
+    "css_import": "Uses @import 'tailwindcss' (v4 syntax) instead of @tailwind directives",
+    "theme_definition": "Uses @theme {} block for custom CSS properties (v4 feature)",
+    "utility_usage": "Extensive use of @apply directive throughout custom classes",
+    "color_opacity": "Uses slash notation for opacity (e.g., bg-gray-900/50)",
+    "dark_mode": "Uses dark: variant prefix for dark mode styles",
+    "arbitrary_values": "May use arbitrary values with brackets [value]"
+  },
+  "existing_implementations": {
+    "description": "Project already migrated to Tailwind v4 structure but needs validation",
+    "tailwind_version": "4.0.0",
+    "postcss_plugin": "@tailwindcss/postcss 4.0.0",
+    "import_syntax": "Modern @import 'tailwindcss' syntax already in use",
+    "theme_system": "Custom theme variables defined in @theme block",
+    "relevant_files": [
+      "docs/app/globals.css",
+      "docs/postcss.config.mjs"
+    ]
+  },
+  "investigation_findings": {
+    "total_css_lines": 383,
+    "apply_directives": "80+",
+    "custom_components": [
+      ".nextra-cards",
+      ".nextra-card",
+      ".nextra-sidebar",
+      ".nextra-toc",
+      ".api-method badges"
+    ],
+    "potential_issues": [
+      "Border color defaults may have changed in v4",
+      "Gradient behavior differences",
+      "Arbitrary CSS variable syntax (if used)",
+      "Deprecated utilities from v3",
+      "Placeholder styles behavior"
+    ]
+  },
+  "tailwind_v4_breaking_changes": {
+    "browser_support": "Requires Safari 16.4+, Chrome 111+, Firefox 128+",
+    "import_syntax": "Single @import 'tailwindcss' replaces three @tailwind directives",
+    "css_variables": "Syntax changed from bg-[--var] to bg-(--var)",
+    "border_defaults": "border-* and divide-* default color behavior changed",
+    "gradient_values": "Gradient values now preserved, may need via-none",
+    "preflight_changes": "Placeholder uses currentColor at 50% opacity, buttons use cursor: default"
+  }
+}

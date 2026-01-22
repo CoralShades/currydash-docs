@@ -1,0 +1,331 @@
+{
+  "feature": "Validate Tailwind v4 CSS Compatibility",
+  "workflow_type": "investigation",
+  "workflow_rationale": "This is an investigation workflow because we need to audit existing CSS for Tailwind v4 compatibility issues before we can fix them. The audit phase discovers what needs fixing, the investigate phase documents root causes, the fix phase applies solutions, and the verify phase ensures everything works correctly.",
+  "phases": [
+    {
+      "id": "phase-1-audit",
+      "name": "CSS Audit",
+      "type": "investigation",
+      "description": "Audit all CSS files and components for Tailwind v4 compatibility issues",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Install dependencies and verify build environment",
+          "service": "docs",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "cd docs && npm install && npm run build 2>&1 | tee ../build-output.log",
+            "expected": "Build completes (may have warnings)"
+          },
+          "status": "completed",
+          "notes": "✅ npm install completed successfully. Installed 861 packages. Verified tailwindcss@4.1.18 and @tailwindcss/postcss@4.1.18 are installed."
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Audit globals.css for Tailwind v4 compatibility issues",
+          "service": "docs",
+          "files_to_modify": [],
+          "files_to_create": ["css-audit-report.md"],
+          "patterns_from": ["docs/app/globals.css"],
+          "verification": {
+            "type": "manual",
+            "instructions": "Review css-audit-report.md contains analysis of all @apply directives, custom classes, and potential v4 issues"
+          },
+          "expected_output": "Markdown document listing: (1) All @apply usage, (2) Deprecated utilities, (3) Syntax issues, (4) Border/gradient concerns",
+          "status": "pending"
+        },
+        {
+          "id": "subtask-1-3",
+          "description": "Audit component files for Tailwind class usage",
+          "service": "docs",
+          "files_to_modify": [],
+          "files_to_create": ["component-audit-report.md"],
+          "patterns_from": ["docs/app/layout.tsx", "docs/mdx-components.tsx"],
+          "verification": {
+            "type": "manual",
+            "instructions": "Review component-audit-report.md contains analysis of all Tailwind classes in TSX files"
+          },
+          "expected_output": "Markdown document listing: (1) All className usage, (2) Inline style props, (3) Potential v4 issues in components",
+          "status": "pending"
+        },
+        {
+          "id": "subtask-1-4",
+          "description": "Audit MDX content files for Tailwind usage",
+          "service": "docs",
+          "files_to_modify": [],
+          "files_to_create": ["content-audit-report.md"],
+          "patterns_from": ["docs/content/**/*.mdx"],
+          "verification": {
+            "type": "manual",
+            "instructions": "Review content-audit-report.md contains analysis of Tailwind classes in MDX files"
+          },
+          "expected_output": "Markdown document listing: (1) MDX files with Tailwind classes, (2) Custom HTML with className, (3) Potential issues",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-investigate",
+      "name": "Issue Analysis",
+      "type": "investigation",
+      "description": "Analyze audit findings and document root causes of any issues",
+      "depends_on": ["phase-1-audit"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Consolidate audit reports and identify critical issues",
+          "service": "docs",
+          "files_to_modify": [],
+          "files_to_create": ["INVESTIGATION.md"],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Review INVESTIGATION.md contains: (1) Summary of all issues found, (2) Root causes, (3) Prioritized fix list, (4) Proposed solutions"
+          },
+          "expected_output": "Comprehensive investigation document with: (1) Root cause analysis, (2) Evidence from audit reports, (3) Categorized issues (critical/high/medium/low), (4) Recommended fixes per category",
+          "status": "pending"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Test current build output and document visual issues",
+          "service": "docs",
+          "files_to_modify": [],
+          "files_to_create": ["visual-issues.md"],
+          "patterns_from": [],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000",
+            "checks": [
+              "Document any visual rendering issues",
+              "Test responsive breakpoints",
+              "Check dark mode toggle",
+              "Verify component styling"
+            ]
+          },
+          "expected_output": "Document with screenshots/descriptions of: (1) Visual breaks, (2) Styling inconsistencies, (3) Layout issues, (4) Responsive problems",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-fix",
+      "name": "Apply Fixes",
+      "type": "implementation",
+      "description": "Apply fixes for all identified Tailwind v4 compatibility issues",
+      "depends_on": ["phase-2-investigate"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Fix critical and high priority CSS issues in globals.css",
+          "service": "docs",
+          "files_to_modify": ["docs/app/globals.css"],
+          "files_to_create": [],
+          "patterns_from": ["docs/app/globals.css"],
+          "verification": {
+            "type": "command",
+            "command": "cd docs && npm run build",
+            "expected": "Build succeeds with no errors"
+          },
+          "notes": "Address issues identified in INVESTIGATION.md: deprecated utilities, syntax changes, border/gradient defaults",
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Fix component Tailwind class usage if needed",
+          "service": "docs",
+          "files_to_modify": ["docs/app/layout.tsx", "docs/mdx-components.tsx"],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "cd docs && npm run build",
+            "expected": "Build succeeds with no errors"
+          },
+          "notes": "Only modify if component-audit-report.md identified issues",
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Fix MDX content Tailwind usage if needed",
+          "service": "docs",
+          "files_to_modify": ["docs/content/**/*.mdx"],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "cd docs && npm run build",
+            "expected": "Build succeeds with no errors"
+          },
+          "notes": "Only modify if content-audit-report.md identified issues",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-verify",
+      "name": "Verification",
+      "type": "integration",
+      "description": "Verify all fixes work correctly and all acceptance criteria are met",
+      "depends_on": ["phase-3-fix"],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Run full build and verify no CSS errors or warnings",
+          "service": "docs",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "cd docs && npm run build 2>&1 | tee ../final-build-output.log",
+            "expected": "Build succeeds with no Tailwind-related errors or warnings"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Visual verification of all component rendering",
+          "service": "docs",
+          "files_to_modify": [],
+          "files_to_create": ["verification-report.md"],
+          "patterns_from": [],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000",
+            "checks": [
+              "Homepage renders correctly",
+              "All card components display properly",
+              "Sidebar navigation works",
+              "Code blocks styled correctly",
+              "Callouts render properly",
+              "Tables display correctly",
+              "Responsive layouts work at all breakpoints",
+              "Dark mode toggle works",
+              "API method badges display correctly"
+            ]
+          },
+          "expected_output": "Document confirming: (1) All visual components render correctly, (2) No styling breaks, (3) Responsive design works, (4) Dark mode functions properly",
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-3",
+          "description": "Create final acceptance report",
+          "service": "docs",
+          "files_to_modify": [],
+          "files_to_create": ["ACCEPTANCE.md"],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Review ACCEPTANCE.md confirms all acceptance criteria are met"
+          },
+          "expected_output": "Document with: (1) Checklist of all acceptance criteria with status, (2) Summary of changes made, (3) Before/after comparison, (4) Sign-off statement",
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 4,
+    "total_subtasks": 11,
+    "services_involved": ["docs"],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential execution required due to investigation dependencies"
+    },
+    "startup_command": "cd docs && npm install && npm run dev"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": ["build", "visual"],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All custom CSS validated against Tailwind v4 syntax",
+      "Deprecated Tailwind v3 utilities replaced with v4 equivalents",
+      "No CSS compilation errors or warnings",
+      "All documentation pages render correctly with no visual breaks",
+      "Code blocks, tables, and callouts display properly",
+      "Responsive layouts work at all breakpoints"
+    ],
+    "verification_steps": [
+      {
+        "name": "Build Validation",
+        "command": "cd docs && npm run build",
+        "expected_outcome": "Build succeeds with no errors",
+        "type": "build",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Dev Server Test",
+        "command": "cd docs && npm run dev",
+        "expected_outcome": "Dev server starts on port 3000",
+        "type": "integration",
+        "required": true,
+        "blocking": false
+      },
+      {
+        "name": "Visual Verification",
+        "command": "manual browser testing",
+        "expected_outcome": "All components render correctly",
+        "type": "browser",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk because CSS changes affect visual presentation site-wide. Requires both build validation and visual verification to ensure no styling breaks."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": false,
+      "commands": [],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": false,
+      "commands": [],
+      "services_to_test": []
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": []
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:3000/",
+          "checks": ["renders", "no-console-errors", "cards-display", "sidebar-visible"]
+        },
+        {
+          "url": "http://localhost:3000/getting-started",
+          "checks": ["renders", "code-blocks-styled", "callouts-display"]
+        },
+        {
+          "url": "http://localhost:3000/api",
+          "checks": ["renders", "api-badges-display", "tables-formatted"]
+        }
+      ]
+    },
+    "build_verification": {
+      "required": true,
+      "commands": ["cd docs && npm run build"],
+      "success_criteria": ["no-errors", "no-tailwind-warnings"]
+    }
+  },
+  "qa_signoff": null
+}

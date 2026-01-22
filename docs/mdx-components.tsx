@@ -1,8 +1,8 @@
 // mdx-components.tsx
 // Nextra MDX components with CurryDash BMAD components
 
-import type { MDXComponents } from 'mdx/types'
-import { useMDXComponents as getNextraMDXComponents } from 'nextra/mdx-components'
+import { useMDXComponents as getNextraMDXComponents } from 'nextra-theme-docs'
+import type { MDXComponents } from 'nextra/mdx-components'
 import { Callout, Cards, FileTree, Steps, Tabs } from 'nextra/components'
 import type { ReactNode } from 'react'
 
@@ -54,13 +54,13 @@ const BMADComponents = {
 
 export function useMDXComponents(components?: MDXComponents): MDXComponents {
   return {
-    ...getNextraMDXComponents({ ...components }),
+    ...getNextraMDXComponents(components || {}),
     Callout,
     Cards,
     FileTree,
     Steps,
     Tabs,
     ...BMADComponents,
-    ...components,
-  }
+    ...(components || {}),
+  } as MDXComponents
 }
