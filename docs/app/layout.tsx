@@ -59,6 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           editLink="Edit this page on GitHub"
           sidebar={{ defaultMenuCollapseLevel: 1, toggleButton: true }}
           toc={{ backToTop: true, float: true, title: 'On This Page' }}
+          darkMode
         >
           {children}
         </Layout>
