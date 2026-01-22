@@ -44,7 +44,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 | Category | NFR Count | Key Constraints |
 |----------|-----------|-----------------|
-| Performance | 8 | <200ms API p95, <2s dashboard, <100ms DB queries |
+| Performance | 8 | `<200ms` API p95, `<2s` dashboard, `<100ms` DB queries |
 | Security | 12 | TLS 1.2+, JWT rotation, PCI-DSS via Stripe, APP compliance |
 | Scalability | 6 | 10x growth capacity, 100k+ orders, 3x peak load |
 | Reliability | 8 | 99.5% uptime, 100% order durability, atomic payments |
@@ -201,7 +201,7 @@ php artisan pest:install
 1. Service Layer Architecture - How to organize business logic
 2. API Response Standardization - Consistent format for mobile/web apps
 3. Queue Processing Strategy - Async operations for scale
-4. Caching Architecture - Meet <200ms API target
+4. Caching Architecture - Meet `<200ms` API target
 
 **Important Decisions (Shape Architecture):**
 5. Error Handling Strategy - Consistent error responses
@@ -399,7 +399,7 @@ app/Services/
 
 **Cross-Component Dependencies:**
 - Queue system enables: notifications, report generation, subscription scheduling
-- Cache layer enables: <200ms API targets, reduced DB load
+- Cache layer enables: `<200ms` API targets, reduced DB load
 - Service extraction enables: testability, code reuse, maintainability
 
 ## Implementation Patterns & Consistency Rules
