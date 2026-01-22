@@ -1,0 +1,21 @@
+{
+  "subtasks": {
+    "subtask-1-1": {
+      "attempts": [
+        {
+          "session": 2,
+          "timestamp": "2026-01-22T13:24:13.173716",
+          "approach": "Implemented: Add display and layout properties to .nextra-sidebar-container",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    }
+  },
+  "stuck_subtasks": [],
+  "metadata": {
+    "created_at": "2026-01-22T13:16:40.757646",
+    "last_updated": "2026-01-22T13:24:13.173716"
+  }
+}
