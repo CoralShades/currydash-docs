@@ -213,9 +213,84 @@ Serialize restaurant data with all required fields and metadata.
 
 </Steps>
 
-**Client Implementation Example**:
+**Code Examples**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $zoneId = 1;
+        $limit = 10;
+        $offset = 0;
+
+        $response = Http::get('https://currydash.au/api/v1/restaurants/latest', [
+            'zone_id' => $zoneId,
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // Access restaurant data
+            $restaurants = $data['restaurants'];
+            $totalSize = $data['total_size'];
+
+            return response()->json([
+                'success' => true,
+                'total' => $totalSize,
+                'restaurants' => $restaurants,
+                'pagination' => [
+                    'current_page' => ($offset / $limit) + 1,
+                    'total_pages' => ceil($totalSize / $limit),
+                    'per_page' => $limit,
+                ],
+            ]);
+        }
+
+        // Handle zone not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Zone not found or inactive',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid request parameters',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load restaurants',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Failed to fetch latest restaurants', [
+            'zone_id' => $zoneId,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to restaurant service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
   <Tabs.Tab>
     ```javascript
     // Fetch latest restaurants for a zone
@@ -496,9 +571,62 @@ Serialize complete restaurant profile with all metadata and relationships.
 
 </Steps>
 
-**Client Implementation Example**:
+**Code Examples**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $restaurantId = 15;
+
+        $response = Http::get("https://currydash.au/api/v1/restaurants/details/{$restaurantId}");
+
+        if ($response->successful()) {
+            $restaurant = $response->json();
+
+            // Access restaurant details
+            return response()->json([
+                'success' => true,
+                'restaurant' => $restaurant,
+                'is_open' => $restaurant['open'],
+                'operating_hours' => $restaurant['opening_hours'],
+                'menu_categories' => $restaurant['categories'],
+            ]);
+        }
+
+        // Handle restaurant not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Restaurant not found',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load restaurant details',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Failed to fetch restaurant details', [
+            'restaurant_id' => $restaurantId,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to restaurant service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
   <Tabs.Tab>
     ```javascript
     // Fetch restaurant details
@@ -786,9 +914,91 @@ Tag each result with `match_type` indicating where the match was found.
 
 </Steps>
 
-**Client Implementation Example**:
+**Code Examples**:
 
-<Tabs items={['JavaScript', 'Flutter', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'JavaScript', 'Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $zoneId = 1;
+        $query = 'curry';
+        $filterBy = 'all'; // Options: 'all', 'name', 'cuisine', 'dish'
+        $limit = 10;
+        $offset = 0;
+
+        $response = Http::get('https://currydash.au/api/v1/restaurants/search', [
+            'zone_id' => $zoneId,
+            'query' => $query,
+            'filter_by' => $filterBy,
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // Access search results
+            $restaurants = $data['restaurants'];
+            $totalSize = $data['total_size'];
+
+            return response()->json([
+                'success' => true,
+                'query' => $query,
+                'filter_by' => $filterBy,
+                'total_results' => $totalSize,
+                'restaurants' => $restaurants,
+                'pagination' => [
+                    'current_page' => ($offset / $limit) + 1,
+                    'total_pages' => ceil($totalSize / $limit),
+                    'per_page' => $limit,
+                ],
+            ]);
+        }
+
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid search parameters',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle zone not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Zone not found or inactive',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Search failed',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Restaurant search failed', [
+            'zone_id' => $zoneId,
+            'query' => $query,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to restaurant service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
   <Tabs.Tab>
     ```javascript
     // Search restaurants
