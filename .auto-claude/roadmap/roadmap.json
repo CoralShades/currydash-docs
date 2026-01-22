@@ -295,7 +295,7 @@
       "impact": "high",
       "phase_id": "phase-1",
       "dependencies": [],
-      "status": "under_review",
+      "status": "planned",
       "acceptance_criteria": [
         "All REST API endpoints are documented in the API Reference section",
         "Each endpoint has method, URL, description, parameters, request body schema, response schema, and error codes",
@@ -307,6 +307,7 @@
         "As a frontend developer, I want to see complete API endpoint documentation so that I can integrate Flutter apps without guessing API behavior",
         "As a third-party integrator, I want to understand authentication requirements so that I can securely access CurryDash APIs"
       ],
+      "linked_spec_id": "005-complete-api-reference-documentation",
       "competitor_insight_ids": []
     },
     {
@@ -319,7 +320,7 @@
       "impact": "high",
       "phase_id": "phase-1",
       "dependencies": [],
-      "status": "under_review",
+      "status": "planned",
       "acceptance_criteria": [
         "Every API endpoint has at least one code example in PHP and one in Dart",
         "Code examples include proper error handling patterns",
@@ -331,6 +332,7 @@
         "As a Laravel developer, I want to see PHP code examples so that I can quickly implement backend integrations",
         "As a Flutter developer, I want to see Dart code examples so that I can copy and adapt them for my mobile app"
       ],
+      "linked_spec_id": "006-code-examples-snippets-enhancement",
       "competitor_insight_ids": []
     },
     {
@@ -343,7 +345,7 @@
       "impact": "medium",
       "phase_id": "phase-1",
       "dependencies": [],
-      "status": "under_review",
+      "status": "planned",
       "acceptance_criteria": [
         "All relevant content from docs-legacy/ is migrated to appropriate sections",
         "Migrated content is updated to reflect current system behavior",
@@ -356,6 +358,7 @@
         "As a team member, I want all documentation in one place so that I don't have to search multiple locations",
         "As a new developer, I want only current documentation so that I don't accidentally follow outdated instructions"
       ],
+      "linked_spec_id": "007-legacy-documentation-migration",
       "competitor_insight_ids": []
     },
     {
@@ -368,7 +371,7 @@
       "impact": "high",
       "phase_id": "phase-1",
       "dependencies": [],
-      "status": "under_review",
+      "status": "planned",
       "acceptance_criteria": [
         "Sync workflow tested with real commits from backend repository",
         "Sync workflow tested with real commits from mobile repository",
@@ -381,6 +384,7 @@
         "As a developer, I want documentation to automatically update when I merge code so that docs never become stale",
         "As a DevOps engineer, I want to see sync status so that I can troubleshoot any workflow failures"
       ],
+      "linked_spec_id": "008-cross-repository-sync-validation",
       "competitor_insight_ids": []
     },
     {
@@ -393,7 +397,7 @@
       "impact": "medium",
       "phase_id": "phase-1",
       "dependencies": [],
-      "status": "under_review",
+      "status": "planned",
       "acceptance_criteria": [
         "Automated scan identifies all TODO, TBD, placeholder, and [REPLACE] markers",
         "Each placeholder is replaced with actual content or the page is marked as draft",
@@ -405,6 +409,7 @@
         "As a user, I want to see complete information on every page so that I can trust the documentation",
         "As a technical writer, I want to easily find incomplete sections so that I can prioritize content creation"
       ],
+      "linked_spec_id": "009-placeholder-content-audit-replacement",
       "competitor_insight_ids": []
     },
     {
@@ -753,7 +758,7 @@
       "impact": "high",
       "phase_id": "phase-0",
       "dependencies": [],
-      "status": "planned",
+      "status": "done",
       "acceptance_criteria": [
         "Sidebar navigation is visible on desktop viewports (1024px+)",
         "Sidebar navigation is visible on tablet viewports (768px-1023px)",
@@ -777,7 +782,7 @@
       "impact": "high",
       "phase_id": "phase-0",
       "dependencies": [],
-      "status": "planned",
+      "status": "in_progress",
       "acceptance_criteria": [
         "TOC 'On This Page' component renders on pages with multiple headings",
         "TOC shows all h2 and h3 headings from the page content",
@@ -789,6 +794,7 @@
         "As a documentation reader, I want to see page sections so that I can jump to relevant content",
         "As a developer, I want in-page navigation so that I can quickly find specific API details"
       ],
+      "linked_spec_id": "002-fix-toc-on-this-page-visibility",
       "competitor_insight_ids": []
     },
     {
@@ -801,7 +807,7 @@
       "impact": "high",
       "phase_id": "phase-0",
       "dependencies": [],
-      "status": "planned",
+      "status": "in_progress",
       "acceptance_criteria": [
         "All custom CSS validated against Tailwind v4 syntax",
         "Deprecated Tailwind v3 utilities replaced with v4 equivalents",
@@ -814,6 +820,7 @@
         "As a documentation maintainer, I want CSS to compile without errors so that styling is predictable",
         "As a user, I want pages to display correctly so that I can read documentation comfortably"
       ],
+      "linked_spec_id": "003-validate-tailwind-v4-css-compatibility",
       "competitor_insight_ids": []
     },
     {
@@ -828,7 +835,7 @@
       "dependencies": [
         "feature-21"
       ],
-      "status": "planned",
+      "status": "in_progress",
       "acceptance_criteria": [
         "Dark mode toggle is visible and accessible in the header/navbar",
         "Clicking toggle switches between light and dark modes",
@@ -841,6 +848,7 @@
         "As a developer working late, I want dark mode so that the screen isn't harsh on my eyes",
         "As a user, I want my theme preference saved so that it persists across visits"
       ],
+      "linked_spec_id": "004-dark-mode-toggle-functional",
       "competitor_insight_ids": []
     },
     {
@@ -1164,7 +1172,7 @@
   ],
   "metadata": {
     "created_at": "2026-01-22T12:15:00Z",
-    "updated_at": "2026-01-22T02:42:11.398Z",
+    "updated_at": "2026-01-22T05:04:41.179Z",
     "generated_by": "roadmap_features agent",
     "prioritization_framework": "MoSCoW",
     "competitor_analysis_used": false,
