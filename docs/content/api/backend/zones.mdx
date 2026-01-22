@@ -303,33 +303,115 @@ Zone data is cached for 1 hour to improve performance (configurable).
   </Tabs.Tab>
   <Tabs.Tab>
     ```dart
-    // Flutter - Fetch zones and display on map
-    Future<List<Zone>> fetchServiceZones() async {
-      final response = await http.get(
-        Uri.parse('https://currydash.au/api/v1/zone/list'),
-      );
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
 
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonZones = json.decode(response.body);
-        return jsonZones.map((json) => Zone.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load zones');
+    /// Fetch all active service zones
+    Future<Map<String, dynamic>> getServiceZones() async {
+      try {
+        final response = await http.get(
+          Uri.parse('https://api.currydash.au/api/v1/zone/list'),
+          headers: {
+            'Accept': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final List<dynamic> zones = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'zones': zones,
+            'count': zones.length,
+          };
+        }
+
+        // Handle server errors (500)
+        if (response.statusCode == 500) {
+          final error = jsonDecode(response.body);
+          final errors = error['errors'] ?? [];
+
+          return {
+            'success': false,
+            'message': 'Unable to retrieve zones. Please try again later.',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to retrieve zones',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        debugPrint('Zone list request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to retrieve service zones',
+          'errors': [
+            {
+              'code': 'network-error',
+              'message': 'Connection to zone service failed',
+            }
+          ],
+        };
       }
     }
 
-    // Render zones on Google Maps
-    Set<Polygon> _buildZonePolygons(List<Zone> zones) {
-      return zones.map((zone) {
-        return Polygon(
-          polygonId: PolygonId('zone_${zone.id}'),
-          points: zone.coordinates.map((c) =>
-            LatLng(c.lat, c.lng)
-          ).toList(),
-          strokeWidth: 2,
-          strokeColor: Colors.orange,
-          fillColor: Colors.orange.withOpacity(0.15),
+    /// Process zones for display on map
+    Future<Map<String, dynamic>> getZonesForMap() async {
+      try {
+        final response = await http.get(
+          Uri.parse('https://api.currydash.au/api/v1/zone/list'),
+          headers: {
+            'Accept': 'application/json',
+          },
         );
-      }).toSet();
+
+        if (response.statusCode == 200) {
+          final List<dynamic> zones = jsonDecode(response.body);
+
+          // Transform zones for map rendering
+          final mapZones = zones.map((zone) {
+            return {
+              'id': zone['id'],
+              'name': zone['name'],
+              'polygon': zone['coordinates'],
+              'isActive': zone['status'],
+              'color': '#FF6B35', // CurryDash brand color
+            };
+          }).toList();
+
+          return {
+            'success': true,
+            'zones': mapZones,
+          };
+        }
+
+        // Handle server errors (500)
+        if (response.statusCode == 500) {
+          return {
+            'success': false,
+            'message': 'Zone service temporarily unavailable',
+          };
+        }
+
+        return {
+          'success': false,
+          'message': 'Failed to retrieve zones',
+        };
+
+      } catch (e) {
+        debugPrint('Failed to fetch zones for map: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to load zone map data',
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -761,55 +843,204 @@ public function isPointInPolygon($point, $polygon)
   </Tabs.Tab>
   <Tabs.Tab>
     ```dart
-    // Flutter - Check zone availability
-    Future<ZoneCheckResult?> checkZoneAvailability(
-      double latitude,
-      double longitude
-    ) async {
-      final url = 'https://currydash.au/api/v1/zone/check'
-          '?lat=$latitude&lng=$longitude';
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
 
+    /// Check if coordinates are within a serviceable zone
+    Future<Map<String, dynamic>> checkZoneAvailability({
+      required double latitude,
+      required double longitude,
+    }) async {
       try {
-        final response = await http.get(Uri.parse(url));
+        final response = await http.get(
+          Uri.parse(
+            'https://api.currydash.au/api/v1/zone/check'
+            '?lat=$latitude&lng=$longitude'
+          ),
+          headers: {
+            'Accept': 'application/json',
+          },
+        );
 
+        // Success - location is serviceable
         if (response.statusCode == 200) {
-          return ZoneCheckResult.fromJson(json.decode(response.body));
-        } else if (response.statusCode == 404) {
-          // Not serviceable
-          return null;
-        } else {
-          throw Exception('Failed to check zone');
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'serviceable': data['serviceable'],
+            'zone': {
+              'id': data['zone_id'],
+              'name': data['zone_name'],
+            },
+          };
         }
+
+        // Handle 404 - location not serviceable
+        if (response.statusCode == 404) {
+          final error = jsonDecode(response.body);
+
+          return {
+            'success': false,
+            'serviceable': false,
+            'message': 'Service not available in this area',
+            'errors': error['errors'] ?? [],
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final error = jsonDecode(response.body);
+
+          return {
+            'success': false,
+            'message': 'Invalid request parameters',
+            'errors': error['errors'] ?? [],
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to check zone availability',
+        };
+
       } catch (e) {
-        print('Zone check error: $e');
-        return null;
+        // Handle network or timeout errors
+        debugPrint('Zone check request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to verify service availability',
+          'errors': [
+            {
+              'code': 'network-error',
+              'message': 'Connection failed',
+            }
+          ],
+        };
       }
     }
 
-    // Usage with device location
-    Position position = await Geolocator.getCurrentPosition();
-    ZoneCheckResult? zone = await checkZoneAvailability(
-      position.latitude,
-      position.longitude
-    );
+    /// Validate delivery address and check zone
+    Future<Map<String, dynamic>> validateDeliveryAddress({
+      required String address,
+      required double latitude,
+      required double longitude,
+    }) async {
+      try {
+        final response = await http.get(
+          Uri.parse(
+            'https://api.currydash.au/api/v1/zone/check'
+            '?lat=$latitude&lng=$longitude'
+          ),
+          headers: {
+            'Accept': 'application/json',
+          },
+        );
 
-    if (zone != null && zone.serviceable) {
-      // Load restaurants for this zone
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RestaurantListScreen(zoneId: zone.zoneId),
-        ),
-      );
-    } else {
-      // Show not serviceable dialog
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Service Unavailable'),
-          content: Text('We don\'t deliver to this area yet. Check back soon!'),
-        ),
-      );
+        if (response.statusCode == 200) {
+          final zoneData = jsonDecode(response.body);
+
+          // Address is serviceable - proceed with order
+          return {
+            'success': true,
+            'serviceable': true,
+            'message': 'Great! We deliver to ${zoneData['zone_name']}',
+            'zone': {
+              'id': zoneData['zone_id'],
+              'name': zoneData['zone_name'],
+            },
+            'address': address,
+          };
+        }
+
+        // Address not serviceable
+        if (response.statusCode == 404) {
+          return {
+            'success': false,
+            'serviceable': false,
+            'message': 'Sorry, we don\'t deliver to this area yet',
+            'suggestion': 'Try a different address or check back later',
+          };
+        }
+
+        return {
+          'success': false,
+          'message': 'Unable to validate address',
+        };
+
+      } catch (e) {
+        debugPrint('Address validation failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to validate delivery address',
+        };
+      }
+    }
+
+    /// Get restaurants available in user's zone
+    Future<Map<String, dynamic>> getRestaurantsByLocation({
+      required double latitude,
+      required double longitude,
+    }) async {
+      try {
+        // First, check which zone the user is in
+        final zoneResponse = await http.get(
+          Uri.parse(
+            'https://api.currydash.au/api/v1/zone/check'
+            '?lat=$latitude&lng=$longitude'
+          ),
+          headers: {
+            'Accept': 'application/json',
+          },
+        );
+
+        if (zoneResponse.statusCode == 404) {
+          return {
+            'success': false,
+            'serviceable': false,
+            'message': 'No restaurants available in your area',
+            'restaurants': [],
+          };
+        }
+
+        if (zoneResponse.statusCode == 200) {
+          final zone = jsonDecode(zoneResponse.body);
+
+          // Fetch restaurants for this zone
+          // (This would call your restaurant API with zone_id filter)
+          final restaurants = await _getRestaurantsByZoneId(zone['zone_id']);
+
+          return {
+            'success': true,
+            'zone': zone,
+            'restaurants': restaurants,
+            'count': restaurants.length,
+          };
+        }
+
+        return {
+          'success': false,
+          'message': 'Failed to determine service area',
+        };
+
+      } catch (e) {
+        debugPrint('Failed to get restaurants by location: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to load restaurants',
+        };
+      }
+    }
+
+    /// Helper function to fetch restaurants by zone ID
+    Future<List<dynamic>> _getRestaurantsByZoneId(int zoneId) async {
+      // Implementation would call your restaurant API
+      // This is a placeholder
+      return [];
     }
     ```
   </Tabs.Tab>
