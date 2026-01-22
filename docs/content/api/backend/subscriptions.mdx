@@ -79,7 +79,7 @@ Create a new recurring subscription for a customized package with automated deli
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -170,6 +170,112 @@ Create a new recurring subscription for a customized package with automated deli
             'success' => false,
             'message' => 'Unable to connect to subscription service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> createSubscription({
+      required int packageId,
+      required int quantity,
+      required List<Map<String, int>> selectedOptions,
+      required String frequency,
+      required String deliveryDay,
+      required String deliveryTime,
+      required int deliveryAddressId,
+      required String startDate,
+      required String paymentMethod,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/subscriptions'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+          body: jsonEncode({
+            'package_id': packageId,
+            'quantity': quantity,
+            'selected_options': selectedOptions,
+            'frequency': frequency,
+            'delivery_day': deliveryDay,
+            'delivery_time': deliveryTime,
+            'delivery_address_id': deliveryAddressId,
+            'start_date': startDate,
+            'payment_method': paymentMethod,
+          }),
+        );
+
+        if (response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+          return {
+            'success': true,
+            'message': 'Subscription created successfully',
+            'subscription': data,
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Validation failed',
+            'errors': errors,
+          };
+        }
+
+        // Handle invalid start date (400)
+        if (response.statusCode == 400) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': errors.isNotEmpty ? errors[0]['message'] : 'Invalid subscription data',
+            'errors': errors,
+          };
+        }
+
+        // Handle payment setup failure (402)
+        if (response.statusCode == 402) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Payment authorization failed',
+            'errors': errors,
+          };
+        }
+
+        // Handle zone not available (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Service not available at this address',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to create subscription',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Unable to connect to subscription service',
+          'error': e.toString(),
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -367,7 +473,7 @@ Temporarily pause a subscription for a specified period or indefinitely.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -438,6 +544,87 @@ Temporarily pause a subscription for a specified period or indefinitely.
             'success' => false,
             'message' => 'Unable to connect to subscription service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> pauseSubscription({
+      required int subscriptionId,
+      String? pauseUntil,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        final response = await http.put(
+          Uri.parse('https://api.currydash.au/api/v1/subscriptions/$subscriptionId/pause'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+          body: jsonEncode({
+            if (pauseUntil != null) 'pause_until': pauseUntil,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Subscription paused successfully',
+            'subscription': data['subscription'],
+          };
+        }
+
+        // Handle not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Subscription not found or does not belong to you',
+            'errors': errors,
+          };
+        }
+
+        // Handle already paused (400)
+        if (response.statusCode == 400) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': errors.isNotEmpty ? errors[0]['message'] : 'Cannot pause subscription',
+            'errors': errors,
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Validation failed',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to pause subscription',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Unable to connect to subscription service',
+          'error': e.toString(),
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -582,7 +769,7 @@ Resume a paused subscription and reschedule deliveries.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -663,6 +850,97 @@ Resume a paused subscription and reschedule deliveries.
             'success' => false,
             'message' => 'Unable to connect to subscription service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> resumeSubscription({
+      required int subscriptionId,
+      bool? resumeImmediately,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        final response = await http.put(
+          Uri.parse('https://api.currydash.au/api/v1/subscriptions/$subscriptionId/resume'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+          body: jsonEncode({
+            if (resumeImmediately != null) 'resume_immediately': resumeImmediately,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Subscription resumed successfully',
+            'subscription': data['subscription'],
+          };
+        }
+
+        // Handle not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Subscription not found or does not belong to you',
+            'errors': errors,
+          };
+        }
+
+        // Handle not paused (400)
+        if (response.statusCode == 400) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': errors.isNotEmpty ? errors[0]['message'] : 'Subscription is not paused',
+            'errors': errors,
+          };
+        }
+
+        // Handle payment method invalid (402)
+        if (response.statusCode == 402) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Payment method is no longer valid. Please update payment method.',
+            'errors': errors,
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Validation failed',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to resume subscription',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Unable to connect to subscription service',
+          'error': e.toString(),
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -808,7 +1086,7 @@ Permanently cancel a subscription. This action cannot be undone.
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -881,6 +1159,96 @@ Permanently cancel a subscription. This action cannot be undone.
             'success' => false,
             'message' => 'Unable to connect to subscription service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> cancelSubscription({
+      required int subscriptionId,
+      String? cancellationReason,
+      String? feedback,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        final request = http.Request(
+          'DELETE',
+          Uri.parse('https://api.currydash.au/api/v1/subscriptions/$subscriptionId'),
+        );
+
+        request.headers.addAll({
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        });
+
+        request.body = jsonEncode({
+          if (cancellationReason != null) 'cancellation_reason': cancellationReason,
+          if (feedback != null) 'feedback': feedback,
+        });
+
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Subscription canceled successfully',
+            'subscription': data['subscription'],
+            'pending_orders': data['pending_orders'],
+          };
+        }
+
+        // Handle not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Subscription not found or does not belong to you',
+            'errors': errors,
+          };
+        }
+
+        // Handle already canceled (400)
+        if (response.statusCode == 400) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': errors.isNotEmpty ? errors[0]['message'] : 'Subscription is already canceled',
+            'errors': errors,
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Validation failed',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to cancel subscription',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Unable to connect to subscription service',
+          'error': e.toString(),
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -1031,7 +1399,7 @@ Update subscription details including delivery preferences, package selection, o
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -1129,6 +1497,117 @@ Update subscription details including delivery preferences, package selection, o
             'success' => false,
             'message' => 'Unable to connect to subscription service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> updateSubscription({
+      required int subscriptionId,
+      int? quantity,
+      List<Map<String, int>>? selectedOptions,
+      String? frequency,
+      String? deliveryDay,
+      String? deliveryTime,
+      int? deliveryAddressId,
+      String? paymentMethod,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        final body = <String, dynamic>{};
+        if (quantity != null) body['quantity'] = quantity;
+        if (selectedOptions != null) body['selected_options'] = selectedOptions;
+        if (frequency != null) body['frequency'] = frequency;
+        if (deliveryDay != null) body['delivery_day'] = deliveryDay;
+        if (deliveryTime != null) body['delivery_time'] = deliveryTime;
+        if (deliveryAddressId != null) body['delivery_address_id'] = deliveryAddressId;
+        if (paymentMethod != null) body['payment_method'] = paymentMethod;
+
+        final response = await http.put(
+          Uri.parse('https://api.currydash.au/api/v1/subscriptions/$subscriptionId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+          body: jsonEncode(body),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Subscription updated successfully',
+            'subscription': data['subscription'],
+          };
+        }
+
+        // Handle not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          String message = errors.isNotEmpty ? errors[0]['message'] : 'Subscription not found or does not belong to you';
+
+          // Check if it's a zone error
+          if (errors.isNotEmpty && errors[0]['code'] == 'zone-001') {
+            message = 'Delivery service is not available at the new address';
+          }
+
+          return {
+            'success': false,
+            'message': message,
+            'errors': errors,
+          };
+        }
+
+        // Handle cannot update canceled (400)
+        if (response.statusCode == 400) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': errors.isNotEmpty ? errors[0]['message'] : 'Cannot update subscription',
+            'errors': errors,
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Validation failed',
+            'errors': errors,
+          };
+        }
+
+        // Handle payment authorization failure (402)
+        if (response.statusCode == 402) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Payment authorization failed for new payment method',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to update subscription',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Unable to connect to subscription service',
+          'error': e.toString(),
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -1323,7 +1802,7 @@ GET /api/v1/subscriptions/234
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -1379,6 +1858,70 @@ GET /api/v1/subscriptions/234
             'success' => false,
             'message' => 'Unable to connect to subscription service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> getSubscriptionDetails({
+      required int subscriptionId,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        final response = await http.get(
+          Uri.parse('https://api.currydash.au/api/v1/subscriptions/$subscriptionId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return {
+            'success': true,
+            'subscription': data,
+          };
+        }
+
+        // Handle not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Subscription not found or does not belong to you',
+            'errors': errors,
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to retrieve subscription',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Unable to connect to subscription service',
+          'error': e.toString(),
+        };
+      }
     }
     ```
   </Tabs.Tab>
@@ -1517,7 +2060,7 @@ GET /api/v1/subscriptions?status=active&limit=10&offset=0
 
 **Code Examples**:
 
-<Tabs items={['PHP/Laravel', 'cURL']}>
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
   <Tabs.Tab>
     ```php
     use Illuminate\Support\Facades\Http;
@@ -1578,6 +2121,84 @@ GET /api/v1/subscriptions?status=active&limit=10&offset=0
             'success' => false,
             'message' => 'Unable to connect to subscription service',
         ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> listSubscriptions({
+      String? status,
+      int limit = 10,
+      int offset = 0,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        final queryParams = {
+          if (status != null) 'status': status,
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+        };
+
+        final uri = Uri.parse('https://api.currydash.au/api/v1/subscriptions')
+            .replace(queryParameters: queryParams);
+
+        final response = await http.get(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return {
+            'success': true,
+            'total_size': data['total_size'],
+            'limit': data['limit'],
+            'offset': data['offset'],
+            'subscriptions': data['subscriptions'],
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Invalid query parameters',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to retrieve subscriptions',
+        };
+      } catch (e) {
+        return {
+          'success': false,
+          'message': 'Unable to connect to subscription service',
+          'error': e.toString(),
+        };
+      }
     }
     ```
   </Tabs.Tab>
