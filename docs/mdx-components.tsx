@@ -5,6 +5,7 @@ import type { MDXComponents } from 'mdx/types'
 import { useMDXComponents as getNextraMDXComponents } from 'nextra/mdx-components'
 import { Callout, Cards, FileTree, Steps, Tabs } from 'nextra/components'
 import type { ReactNode } from 'react'
+import { CodeBlock } from './components/CodeBlock'
 
 // Custom BMAD components for CurryDash documentation
 const BMADComponents = {
@@ -50,6 +51,8 @@ const BMADComponents = {
       </span>
     )
   },
+
+  CodeBlock,
 }
 
 export function useMDXComponents(components?: MDXComponents): MDXComponents {

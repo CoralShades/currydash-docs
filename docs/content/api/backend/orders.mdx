@@ -77,6 +77,268 @@ Create a new order from the user's cart with payment processing and delivery det
 }
 ```
 
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $accessToken = session('access_token');
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not authenticated',
+            ], 401);
+        }
+
+        $response = Http::withToken($accessToken)
+            ->post('https://api.currydash.au/api/v1/orders', [
+                'payment_method' => 'stripe',
+                'order_amount' => 143.55,
+                'order_type' => 'delivery',
+                'delivery_address_id' => 12,
+                'distance' => 2.3,
+                'schedule_at' => null,
+                'order_note' => 'Please ring the doorbell',
+                'coupon_discount_amount' => 10.00,
+                'coupon_code' => 'WELCOME10',
+            ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'order_id' => $data['order_id'],
+                'order_status' => $data['order_status'],
+                'payment_status' => $data['payment_status'],
+                'message' => $data['message'],
+            ], 201);
+        }
+
+        // Handle empty cart (400)
+        if ($response->status() === 400) {
+            $errors = $response->json('errors', []);
+            $errorCode = $errors[0]['code'] ?? 'order-error';
+
+            return response()->json([
+                'success' => false,
+                'message' => $errors[0]['message'] ?? 'Unable to place order',
+                'code' => $errorCode,
+            ], 400);
+        }
+
+        // Handle payment failed (402)
+        if ($response->status() === 402) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment processing failed. Please check your payment method.',
+                'errors' => $errors,
+            ], 402);
+        }
+
+        // Handle zone/address issues (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => $errors[0]['message'] ?? 'Service not available',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to place order',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Place order request failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to order service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> placeOrder({
+      required String paymentMethod,
+      required double orderAmount,
+      required String orderType,
+      int? deliveryAddressId,
+      double? distance,
+      DateTime? scheduleAt,
+      String? orderNote,
+      double? couponDiscountAmount,
+      String? couponCode,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Not authenticated',
+          };
+        }
+
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/orders'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+          body: jsonEncode({
+            'payment_method': paymentMethod,
+            'order_amount': orderAmount,
+            'order_type': orderType,
+            if (deliveryAddressId != null) 'delivery_address_id': deliveryAddressId,
+            if (distance != null) 'distance': distance,
+            if (scheduleAt != null) 'schedule_at': scheduleAt.toIso8601String(),
+            if (orderNote != null) 'order_note': orderNote,
+            if (couponDiscountAmount != null) 'coupon_discount_amount': couponDiscountAmount,
+            if (couponCode != null) 'coupon_code': couponCode,
+          }),
+        );
+
+        if (response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'order_id': data['order_id'],
+            'order_status': data['order_status'],
+            'payment_status': data['payment_status'],
+            'message': data['message'],
+          };
+        }
+
+        // Handle empty cart (400)
+        if (response.statusCode == 400) {
+          final data = jsonDecode(response.body);
+          final errors = data['errors'] ?? [];
+          final errorCode = errors.isNotEmpty ? errors[0]['code'] ?? 'order-error' : 'order-error';
+          final errorMessage = errors.isNotEmpty ? errors[0]['message'] ?? 'Unable to place order' : 'Unable to place order';
+
+          return {
+            'success': false,
+            'message': errorMessage,
+            'code': errorCode,
+          };
+        }
+
+        // Handle payment failed (402)
+        if (response.statusCode == 402) {
+          final data = jsonDecode(response.body);
+          final errors = data['errors'] ?? [];
+
+          return {
+            'success': false,
+            'message': 'Payment processing failed. Please check your payment method.',
+            'errors': errors,
+          };
+        }
+
+        // Handle zone/address issues (404)
+        if (response.statusCode == 404) {
+          final data = jsonDecode(response.body);
+          final errors = data['errors'] ?? [];
+          final errorMessage = errors.isNotEmpty ? errors[0]['message'] ?? 'Service not available' : 'Service not available';
+
+          return {
+            'success': false,
+            'message': errorMessage,
+            'errors': errors,
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final data = jsonDecode(response.body);
+          final errors = data['errors'] ?? [];
+
+          return {
+            'success': false,
+            'message': 'Validation failed',
+            'errors': errors,
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Invalid or expired token',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to place order',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        return {
+          'success': false,
+          'message': 'Unable to connect to order service',
+          'error': e.toString(),
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X POST https://api.currydash.au/api/v1/orders \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+      -d '{
+        "payment_method": "stripe",
+        "order_amount": 143.55,
+        "order_type": "delivery",
+        "delivery_address_id": 12,
+        "distance": 2.3,
+        "schedule_at": null,
+        "order_note": "Please ring the doorbell",
+        "coupon_discount_amount": 10.00,
+        "coupon_code": "WELCOME10"
+      }'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
 **Field Descriptions**:
 
 | Field | Type | Required | Description |
@@ -248,6 +510,164 @@ Track order status in real-time including delivery person location and estimated
 GET /api/v1/orders/track?order_id=789
 ```
 
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $accessToken = session('access_token');
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not authenticated',
+            ], 401);
+        }
+
+        $orderId = 789; // Get from request
+
+        $response = Http::withToken($accessToken)
+            ->get('https://api.currydash.au/api/v1/orders/track', [
+                'order_id' => $orderId,
+            ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+            ]);
+        }
+
+        // Handle order not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found or does not belong to you',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle unauthorized (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired token',
+            ], 401);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to track order',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Track order request failed', [
+            'order_id' => $orderId ?? null,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to order service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> trackOrder({
+      required int orderId,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Not authenticated',
+          };
+        }
+
+        final response = await http.get(
+          Uri.parse('https://api.currydash.au/api/v1/orders/track?order_id=$orderId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'data': data,
+          };
+        }
+
+        // Handle order not found (404)
+        if (response.statusCode == 404) {
+          final data = jsonDecode(response.body);
+          final errors = data['errors'] ?? [];
+
+          return {
+            'success': false,
+            'message': 'Order not found or does not belong to you',
+            'errors': errors,
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Invalid or expired token',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to track order',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        return {
+          'success': false,
+          'message': 'Unable to connect to order service',
+          'error': e.toString(),
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X GET "https://api.currydash.au/api/v1/orders/track?order_id=789" \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+  </Tabs.Tab>
+</Tabs>
+
 **Success Response** (200 OK):
 
 ```json
@@ -341,6 +761,184 @@ Retrieve paginated list of user's past orders with filtering options.
 ```
 GET /api/v1/orders/history?limit=10&offset=0&status=delivered
 ```
+
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $accessToken = session('access_token');
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not authenticated',
+            ], 401);
+        }
+
+        $response = Http::withToken($accessToken)
+            ->get('https://api.currydash.au/api/v1/orders/history', [
+                'limit' => 10,
+                'offset' => 0,
+                'status' => 'delivered', // Optional filter
+                // 'order_type' => 'delivery', // Optional filter
+            ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'total_size' => $data['total_size'],
+                'limit' => $data['limit'],
+                'offset' => $data['offset'],
+                'orders' => $data['orders'],
+            ]);
+        }
+
+        // Handle unauthorized (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired token',
+            ], 401);
+        }
+
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid parameters',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to retrieve order history',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Order history request failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to order service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> getOrderHistory({
+      int limit = 10,
+      int offset = 0,
+      String? status,
+      String? orderType,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Not authenticated',
+          };
+        }
+
+        // Build query parameters
+        final queryParams = {
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+          if (status != null) 'status': status,
+          if (orderType != null) 'order_type': orderType,
+        };
+
+        final uri = Uri.parse('https://api.currydash.au/api/v1/orders/history')
+            .replace(queryParameters: queryParams);
+
+        final response = await http.get(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'total_size': data['total_size'],
+            'limit': data['limit'],
+            'offset': data['offset'],
+            'orders': data['orders'],
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Invalid or expired token',
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final data = jsonDecode(response.body);
+          final errors = data['errors'] ?? [];
+
+          return {
+            'success': false,
+            'message': 'Invalid parameters',
+            'errors': errors,
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to retrieve order history',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        return {
+          'success': false,
+          'message': 'Unable to connect to order service',
+          'error': e.toString(),
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X GET "https://api.currydash.au/api/v1/orders/history?limit=10&offset=0&status=delivered" \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+  </Tabs.Tab>
+</Tabs>
 
 **Success Response** (200 OK):
 
@@ -449,6 +1047,162 @@ Retrieve complete details for a specific order including all items, delivery inf
 ```
 GET /api/v1/orders/details/789
 ```
+
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $accessToken = session('access_token');
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not authenticated',
+            ], 401);
+        }
+
+        $orderId = 789; // Get from request
+
+        $response = Http::withToken($accessToken)
+            ->get("https://api.currydash.au/api/v1/orders/details/{$orderId}");
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'order' => $data,
+            ]);
+        }
+
+        // Handle order not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found or does not belong to you',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle unauthorized (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired token',
+            ], 401);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to retrieve order details',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        // Handle network or timeout errors
+        Log::error('Order details request failed', [
+            'order_id' => $orderId ?? null,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to order service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> getOrderDetails({
+      required int orderId,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Not authenticated',
+          };
+        }
+
+        final response = await http.get(
+          Uri.parse('https://api.currydash.au/api/v1/orders/details/$orderId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'order': data,
+          };
+        }
+
+        // Handle order not found (404)
+        if (response.statusCode == 404) {
+          final data = jsonDecode(response.body);
+          final errors = data['errors'] ?? [];
+
+          return {
+            'success': false,
+            'message': 'Order not found or does not belong to you',
+            'errors': errors,
+          };
+        }
+
+        // Handle unauthorized (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Invalid or expired token',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to retrieve order details',
+        };
+
+      } catch (e) {
+        // Handle network or timeout errors
+        return {
+          'success': false,
+          'message': 'Unable to connect to order service',
+          'error': e.toString(),
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X GET https://api.currydash.au/api/v1/orders/details/789 \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+  </Tabs.Tab>
+</Tabs>
 
 **Success Response** (200 OK):
 

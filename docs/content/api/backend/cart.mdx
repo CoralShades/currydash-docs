@@ -97,6 +97,241 @@ Add a standard menu item (non-package) to the shopping cart.
 ]
 ```
 
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $accessToken = session('access_token');
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required',
+            ], 401);
+        }
+
+        $response = Http::withToken($accessToken)
+            ->post('https://api.currydash.au/api/v1/cart', [
+                'food_id' => 10,
+                'quantity' => 2,
+                'add_ons' => [
+                    [
+                        'id' => 5,
+                        'quantity' => 1,
+                    ],
+                ],
+                'variation' => [
+                    [
+                        'type' => 'size',
+                        'value' => 'large',
+                    ],
+                ],
+            ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'message' => $data['message'],
+                'cart_item' => $data['cart_item'],
+                'cart_summary' => $data['cart_summary'],
+            ]);
+        }
+
+        // Handle food item not found (404)
+        if ($response->status() === 404) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Food item not found or unavailable',
+                'errors' => $errors,
+            ], 404);
+        }
+
+        // Handle restaurant restriction (400)
+        if ($response->status() === 400) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot add items from different restaurants',
+                'errors' => $errors,
+            ], 400);
+        }
+
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle authentication errors (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session expired. Please login again.',
+            ], 401);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to add item to cart',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('Add to cart request failed', [
+            'food_id' => 10,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to cart service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> addToCart({
+      required int foodId,
+      required int quantity,
+      List<Map<String, int>>? addOns,
+      List<Map<String, String>>? variation,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/cart'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+          body: jsonEncode({
+            'food_id': foodId,
+            'quantity': quantity,
+            if (addOns != null) 'add_ons': addOns,
+            if (variation != null) 'variation': variation,
+          }),
+        );
+
+        if (response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'cart_item': data['cart_item'],
+            'cart_summary': data['cart_summary'],
+          };
+        }
+
+        // Handle food item not found (404)
+        if (response.statusCode == 404) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Food item not found or unavailable',
+            'errors': errors,
+          };
+        }
+
+        // Handle restaurant restriction (400)
+        if (response.statusCode == 400) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Cannot add items from different restaurants',
+            'errors': errors,
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Validation failed',
+            'errors': errors,
+          };
+        }
+
+        // Handle authentication errors (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Session expired. Please login again.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to add item to cart',
+        };
+
+      } catch (e) {
+        debugPrint('Add to cart request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to cart service',
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X POST https://api.currydash.au/api/v1/cart \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+      -d '{
+        "food_id": 10,
+        "quantity": 2,
+        "add_ons": [
+          {
+            "id": 5,
+            "quantity": 1
+          }
+        ],
+        "variation": [
+          {
+            "type": "size",
+            "value": "large"
+          }
+        ]
+      }'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
 **Success Response** (201 Created):
 
 ```json
@@ -264,6 +499,227 @@ foreach ($request->selected_options as $selection) {
 
 </Steps>
 
+**Code Examples**:
+
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $accessToken = session('access_token');
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required',
+            ], 401);
+        }
+
+        $response = Http::withToken($accessToken)
+            ->post('https://api.currydash.au/api/v1/cart/package', [
+                'package_id' => 1,
+                'quantity' => 1,
+                'selected_options' => [
+                    ['option_id' => 1],
+                    ['option_id' => 2],
+                    ['option_id' => 5],
+                ],
+            ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'message' => $data['message'],
+                'cart_item' => $data['cart_item'],
+                'cart_summary' => $data['cart_summary'],
+            ]);
+        }
+
+        // Handle package validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            $errorMessage = $errors[0]['message'] ?? 'Package configuration invalid';
+
+            return response()->json([
+                'success' => false,
+                'message' => $errorMessage,
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle package not found (404)
+        if ($response->status() === 404) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Package not found or unavailable',
+            ], 404);
+        }
+
+        // Handle restaurant restriction (400)
+        if ($response->status() === 400) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot add items from different restaurants',
+                'errors' => $errors,
+            ], 400);
+        }
+
+        // Handle authentication errors (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session expired. Please login again.',
+            ], 401);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to add package to cart',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('Add package to cart request failed', [
+            'package_id' => 1,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to cart service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> addPackageToCart({
+      required int packageId,
+      required int quantity,
+      required List<Map<String, int>> selectedOptions,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        final response = await http.post(
+          Uri.parse('https://api.currydash.au/api/v1/cart/package'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+          body: jsonEncode({
+            'package_id': packageId,
+            'quantity': quantity,
+            'selected_options': selectedOptions,
+          }),
+        );
+
+        if (response.statusCode == 201) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'cart_item': data['cart_item'],
+            'cart_summary': data['cart_summary'],
+          };
+        }
+
+        // Handle package validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          final errorMessage = errors.isNotEmpty
+              ? errors[0]['message']
+              : 'Package configuration invalid';
+
+          return {
+            'success': false,
+            'message': errorMessage,
+            'errors': errors,
+          };
+        }
+
+        // Handle package not found (404)
+        if (response.statusCode == 404) {
+          return {
+            'success': false,
+            'message': 'Package not found or unavailable',
+          };
+        }
+
+        // Handle restaurant restriction (400)
+        if (response.statusCode == 400) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Cannot add items from different restaurants',
+            'errors': errors,
+          };
+        }
+
+        // Handle authentication errors (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Session expired. Please login again.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to add package to cart',
+        };
+
+      } catch (e) {
+        debugPrint('Add package to cart request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to cart service',
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X POST https://api.currydash.au/api/v1/cart/package \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+      -d '{
+        "package_id": 1,
+        "quantity": 1,
+        "selected_options": [
+          {"option_id": 1},
+          {"option_id": 2},
+          {"option_id": 5}
+        ]
+      }'
+    ```
+  </Tabs.Tab>
+</Tabs>
+
 **Success Response** (201 Created):
 
 ```json
@@ -353,12 +809,135 @@ Retrieve all items currently in the customer's shopping cart with calculated tot
 
 **Query Parameters**: None
 
-**Example Request**:
+**Code Examples**:
 
-```
-GET /api/v1/cart
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
-```
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $accessToken = session('access_token');
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required',
+            ], 401);
+        }
+
+        $response = Http::withToken($accessToken)
+            ->get('https://api.currydash.au/api/v1/cart');
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'cart_items' => $data['cart_items'],
+                'cart_summary' => $data['cart_summary'],
+            ]);
+        }
+
+        // Handle authentication errors (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session expired. Please login again.',
+            ], 401);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to retrieve cart',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('View cart request failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to cart service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> getCart() async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        final response = await http.get(
+          Uri.parse('https://api.currydash.au/api/v1/cart'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'cart_items': data['cart_items'],
+            'cart_summary': data['cart_summary'],
+          };
+        }
+
+        // Handle authentication errors (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Session expired. Please login again.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to retrieve cart',
+        };
+
+      } catch (e) {
+        debugPrint('View cart request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to cart service',
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X GET https://api.currydash.au/api/v1/cart \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+  </Tabs.Tab>
+</Tabs>
 
 **Success Response** (200 OK):
 
@@ -520,16 +1099,202 @@ Update the quantity of an existing cart item.
 ]
 ```
 
-**Example Request**:
+**Code Examples**:
 
-```
-PUT /api/v1/cart/123
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
 
-{
-  "quantity": 3
-}
-```
+    try {
+        $accessToken = session('access_token');
+        $cartId = 123;
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required',
+            ], 401);
+        }
+
+        $response = Http::withToken($accessToken)
+            ->put("https://api.currydash.au/api/v1/cart/{$cartId}", [
+                'quantity' => 3,
+            ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'message' => $data['message'],
+                'cart_item' => $data['cart_item'],
+                'cart_summary' => $data['cart_summary'],
+            ]);
+        }
+
+        // Handle cart item not found (404)
+        if ($response->status() === 404) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cart item not found',
+            ], 404);
+        }
+
+        // Handle unauthorized access (403)
+        if ($response->status() === 403) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized to modify this cart item',
+            ], 403);
+        }
+
+        // Handle validation errors (422)
+        if ($response->status() === 422) {
+            $errors = $response->json('errors', []);
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid quantity',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle authentication errors (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session expired. Please login again.',
+            ], 401);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update cart item',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('Update cart item request failed', [
+            'cart_id' => $cartId,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to cart service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> updateCartItem({
+      required int cartId,
+      required int quantity,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        final response = await http.put(
+          Uri.parse('https://api.currydash.au/api/v1/cart/$cartId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+          body: jsonEncode({
+            'quantity': quantity,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'cart_item': data['cart_item'],
+            'cart_summary': data['cart_summary'],
+          };
+        }
+
+        // Handle cart item not found (404)
+        if (response.statusCode == 404) {
+          return {
+            'success': false,
+            'message': 'Cart item not found',
+          };
+        }
+
+        // Handle unauthorized access (403)
+        if (response.statusCode == 403) {
+          return {
+            'success': false,
+            'message': 'Unauthorized to modify this cart item',
+          };
+        }
+
+        // Handle validation errors (422)
+        if (response.statusCode == 422) {
+          final errors = jsonDecode(response.body)['errors'] ?? [];
+          return {
+            'success': false,
+            'message': 'Invalid quantity',
+            'errors': errors,
+          };
+        }
+
+        // Handle authentication errors (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Session expired. Please login again.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to update cart item',
+        };
+
+      } catch (e) {
+        debugPrint('Update cart item request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to cart service',
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X PUT https://api.currydash.au/api/v1/cart/123 \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+      -d '{
+        "quantity": 3
+      }'
+    ```
+  </Tabs.Tab>
+</Tabs>
 
 **Success Response** (200 OK):
 
@@ -600,12 +1365,171 @@ Remove a specific item from the shopping cart.
 |-----------|------|----------|-------------|
 | `cart_id` | integer | Yes | Cart item identifier |
 
-**Example Request**:
+**Code Examples**:
 
-```
-DELETE /api/v1/cart/123
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
-```
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $accessToken = session('access_token');
+        $cartId = 123;
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required',
+            ], 401);
+        }
+
+        $response = Http::withToken($accessToken)
+            ->delete("https://api.currydash.au/api/v1/cart/{$cartId}");
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'message' => $data['message'],
+                'cart_summary' => $data['cart_summary'],
+            ]);
+        }
+
+        // Handle cart item not found (404)
+        if ($response->status() === 404) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cart item not found',
+            ], 404);
+        }
+
+        // Handle unauthorized access (403)
+        if ($response->status() === 403) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized to remove this cart item',
+            ], 403);
+        }
+
+        // Handle authentication errors (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session expired. Please login again.',
+            ], 401);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to remove cart item',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('Remove cart item request failed', [
+            'cart_id' => $cartId,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to cart service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> removeCartItem({
+      required int cartId,
+    }) async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        final response = await http.delete(
+          Uri.parse('https://api.currydash.au/api/v1/cart/$cartId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'cart_summary': data['cart_summary'],
+          };
+        }
+
+        // Handle cart item not found (404)
+        if (response.statusCode == 404) {
+          return {
+            'success': false,
+            'message': 'Cart item not found',
+          };
+        }
+
+        // Handle unauthorized access (403)
+        if (response.statusCode == 403) {
+          return {
+            'success': false,
+            'message': 'Unauthorized to remove this cart item',
+          };
+        }
+
+        // Handle authentication errors (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Session expired. Please login again.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to remove cart item',
+        };
+
+      } catch (e) {
+        debugPrint('Remove cart item request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to cart service',
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X DELETE https://api.currydash.au/api/v1/cart/123 \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+  </Tabs.Tab>
+</Tabs>
 
 **Success Response** (200 OK):
 
@@ -662,12 +1586,135 @@ Remove all items from the shopping cart.
 
 **Rate Limit**: 60 requests/minute per user
 
-**Example Request**:
+**Code Examples**:
 
-```
-DELETE /api/v1/cart/clear
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGc...
-```
+<Tabs items={['PHP/Laravel', 'Dart/Flutter', 'cURL']}>
+  <Tabs.Tab>
+    ```php
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Http\Client\RequestException;
+
+    try {
+        $accessToken = session('access_token');
+
+        if (!$accessToken) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required',
+            ], 401);
+        }
+
+        $response = Http::withToken($accessToken)
+            ->delete('https://api.currydash.au/api/v1/cart/clear');
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'message' => $data['message'],
+                'cart_summary' => $data['cart_summary'],
+            ]);
+        }
+
+        // Handle authentication errors (401)
+        if ($response->status() === 401) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session expired. Please login again.',
+            ], 401);
+        }
+
+        // Handle other errors
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to clear cart',
+        ], $response->status());
+
+    } catch (RequestException $e) {
+        Log::error('Clear cart request failed', [
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Unable to connect to cart service',
+        ], 500);
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```dart
+    import 'dart:convert';
+    import 'package:http/http.dart' as http;
+    import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+    Future<Map<String, dynamic>> clearCart() async {
+      final storage = FlutterSecureStorage();
+
+      try {
+        final accessToken = await storage.read(key: 'access_token');
+
+        if (accessToken == null) {
+          return {
+            'success': false,
+            'message': 'Authentication required',
+          };
+        }
+
+        final response = await http.delete(
+          Uri.parse('https://api.currydash.au/api/v1/cart/clear'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+
+          return {
+            'success': true,
+            'message': data['message'],
+            'cart_summary': data['cart_summary'],
+          };
+        }
+
+        // Handle authentication errors (401)
+        if (response.statusCode == 401) {
+          return {
+            'success': false,
+            'message': 'Session expired. Please login again.',
+          };
+        }
+
+        // Handle other errors
+        return {
+          'success': false,
+          'message': 'Failed to clear cart',
+        };
+
+      } catch (e) {
+        debugPrint('Clear cart request failed: $e');
+
+        return {
+          'success': false,
+          'message': 'Unable to connect to cart service',
+        };
+      }
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```bash
+    curl -X DELETE https://api.currydash.au/api/v1/cart/clear \
+      -H "Content-Type: application/json" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+    ```
+  </Tabs.Tab>
+</Tabs>
 
 **Success Response** (200 OK):
 

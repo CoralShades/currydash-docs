@@ -34,6 +34,51 @@ npm run dev
   🎉 You're all set! Visit `http://localhost:3000` to see your project.
 </Callout>
 
+## Example Code
+
+Here's an example using our custom CodeBlock component with copy-to-clipboard functionality:
+
+<CodeBlock
+  language="typescript"
+  code={`// Example TypeScript code
+import { useState } from 'react'
+
+function Counter() {
+  const [count, setCount] = useState(0)
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>
+        Increment
+      </button>
+    </div>
+  )
+}
+
+export default Counter`}
+/>
+
+<CodeBlock
+  language="php"
+  code={`<?php
+// Example PHP code
+namespace App\\Http\\Controllers;
+
+use Illuminate\\Http\\Request;
+
+class ApiController extends Controller
+{
+    public function index(Request $request)
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => ['message' => 'Hello World']
+        ]);
+    }
+}`}
+/>
+
 ## Next Steps
 
 - [Configuration Options](/getting-started/configuration)

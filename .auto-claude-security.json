@@ -128,9 +128,22 @@
     "zsh"
   ],
   "stack_commands": [
+    "dotnet",
+    "ipython",
+    "jupyter",
+    "msbuild",
     "node",
+    "notebook",
     "npm",
     "npx",
+    "nuget",
+    "pdb",
+    "pip",
+    "pip3",
+    "pipx",
+    "pudb",
+    "python",
+    "python3",
     "ts-node",
     "tsc",
     "tsx"
@@ -144,8 +157,10 @@
   "custom_commands": [],
   "detected_stack": {
     "languages": [
+      "python",
       "javascript",
-      "typescript"
+      "typescript",
+      "csharp"
     ],
     "package_managers": [],
     "frameworks": [],
@@ -167,7 +182,7 @@
       "setup-docs-repository-adapted.sh"
     ]
   },
-  "project_dir": "D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\007-legacy-documentation-migration",
-  "created_at": "2026-01-22T20:05:56.017093",
-  "project_hash": "e59b90b964fc82baa2314e4e04b93b1d"
+  "project_dir": "D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement",
+  "created_at": "2026-01-22T17:19:23.331619",
+  "project_hash": "91c162e4cf8d334304e076013260fd59"
 }
