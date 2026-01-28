@@ -1,8 +1,12 @@
 // mdx-components.tsx
 // Nextra MDX components with CurryDash BMAD components
+//
+// CRITICAL: Must import from 'nextra-theme-docs' (not 'nextra/mdx-components')
+// The theme-docs version provides the `wrapper` component that creates the
+// 3-column layout: Sidebar + ClientWrapper(TOC + article content)
 
 import type { MDXComponents } from 'mdx/types'
-import { useMDXComponents as getNextraMDXComponents } from 'nextra/mdx-components'
+import { useMDXComponents as getThemeDocsMDXComponents } from 'nextra-theme-docs'
 import { Callout, Cards, FileTree, Steps, Tabs } from 'nextra/components'
 import type { ReactNode } from 'react'
 import { CodeBlock } from './components/CodeBlock'
@@ -55,9 +59,8 @@ const BMADComponents = {
   CodeBlock,
 }
 
-export function useMDXComponents(components?: MDXComponents): MDXComponents {
-  return {
-    ...getNextraMDXComponents(components as any),
+export function useMDXComponents(components?: MDXComponents) {
+  return getThemeDocsMDXComponents({
     Callout,
     Cards,
     FileTree,
@@ -65,5 +68,5 @@ export function useMDXComponents(components?: MDXComponents): MDXComponents {
     Tabs,
     ...BMADComponents,
     ...components,
-  } as MDXComponents
+  } as Record<string, any>)
 }

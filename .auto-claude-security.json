@@ -128,15 +128,27 @@
     "zsh"
   ],
   "stack_commands": [
+    "ar",
+    "clang",
+    "clang++",
+    "cmake",
     "dotnet",
+    "g++",
+    "gcc",
     "ipython",
     "jupyter",
+    "ld",
+    "make",
+    "meson",
     "msbuild",
+    "ninja",
+    "nm",
     "node",
     "notebook",
     "npm",
     "npx",
     "nuget",
+    "objdump",
     "pdb",
     "pip",
     "pip3",
@@ -144,6 +156,7 @@
     "pudb",
     "python",
     "python3",
+    "strip",
     "ts-node",
     "tsc",
     "tsx"
@@ -154,13 +167,16 @@
     "./migrate-existing-docs.sh",
     "./setup-docs-repository-adapted.sh"
   ],
-  "custom_commands": [],
+  "custom_commands": [
+    "agent-browser"
+  ],
   "detected_stack": {
     "languages": [
       "python",
       "javascript",
       "typescript",
-      "csharp"
+      "csharp",
+      "c"
     ],
     "package_managers": [],
     "frameworks": [],
@@ -182,7 +198,7 @@
       "setup-docs-repository-adapted.sh"
     ]
   },
-  "project_dir": "D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement",
-  "created_at": "2026-01-22T17:19:23.331619",
-  "project_hash": "91c162e4cf8d334304e076013260fd59"
+  "project_dir": "D:\\ailocal\\currydash-docs",
+  "created_at": "2026-01-23T14:49:20.549686",
+  "project_hash": "4e4ec4f1c37211306a66e92e93b6048b"
 }

@@ -11,19 +11,14 @@
       "Edit(./**)",
       "Glob(./**)",
       "Grep(./**)",
-      "Read(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement/**)",
-      "Write(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement/**)",
-      "Edit(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement/**)",
-      "Glob(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement/**)",
-      "Grep(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement/**)",
-      "Read(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement\\.auto-claude\\specs\\006-code-examples-snippets-enhancement/**)",
-      "Write(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement\\.auto-claude\\specs\\006-code-examples-snippets-enhancement/**)",
-      "Edit(D:\\ailocal\\currydash-docs\\.auto-claude\\worktrees\\tasks\\006-code-examples-snippets-enhancement\\.auto-claude\\specs\\006-code-examples-snippets-enhancement/**)",
-      "Read(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
-      "Write(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
-      "Edit(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
-      "Glob(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
-      "Grep(D:\\ailocal\\currydash-docs\\.auto-claude/**)",
+      "Read(D:\\ailocal\\currydash-docs/**)",
+      "Write(D:\\ailocal\\currydash-docs/**)",
+      "Edit(D:\\ailocal\\currydash-docs/**)",
+      "Glob(D:\\ailocal\\currydash-docs/**)",
+      "Grep(D:\\ailocal\\currydash-docs/**)",
+      "Read(D:\\ailocal\\currydash-docs\\.auto-claude\\ideation/**)",
+      "Write(D:\\ailocal\\currydash-docs\\.auto-claude\\ideation/**)",
+      "Edit(D:\\ailocal\\currydash-docs\\.auto-claude\\ideation/**)",
       "Bash(*)",
       "WebFetch(*)",
       "WebSearch(*)",
@@ -33,7 +28,8 @@
       "mcp__graphiti-memory__search_facts(*)",
       "mcp__graphiti-memory__add_episode(*)",
       "mcp__graphiti-memory__get_episodes(*)",
-      "mcp__graphiti-memory__get_entity_edge(*)"
+      "mcp__graphiti-memory__get_entity_edge(*)",
+      "Bash(agent-browser:*)"
     ]
   }
 }

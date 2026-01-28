@@ -1,0 +1,67 @@
+# Browser QA workflow: screenshot
+name: browser-screenshot
+description: "Capture documentation screenshots for visual documentation, regression baselines, and reporting using agent-browser"
+author: "BMad"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+document_output_language: "{config_source}:document_output_language"
+date: system-generated
+
+# Workflow components
+installed_path: "{project-root}/_bmad/bmm/workflows/browser/screenshot"
+instructions: "{installed_path}/instructions.md"
+
+# Variables and inputs
+variables:
+  base_url: "http://localhost:3000"
+  screenshot_dir: "{output_folder}/browser-qa/screenshots"
+  capture_mode: "all"  # all, sections, single, responsive
+  viewports:
+    - name: desktop
+      width: 1920
+      height: 1080
+    - name: tablet
+      width: 768
+      height: 1024
+    - name: mobile
+      width: 375
+      height: 667
+  capture_full_page: true
+  dark_mode: false
+  sections:
+    - path: "/"
+      name: "homepage"
+    - path: "/admins"
+      name: "admins"
+    - path: "/api"
+      name: "api-reference"
+    - path: "/developers"
+      name: "developers"
+    - path: "/vendors"
+      name: "vendors"
+
+# Output configuration
+default_output_file: "{screenshot_dir}/screenshot-manifest.md"
+
+# Required tools
+required_tools:
+  - agent-browser
+  - write_file
+  - create_directory
+
+tags:
+  - qa
+  - browser
+  - screenshot
+  - visual
+  - documentation
+  - agent-browser
+
+execution_hints:
+  interactive: false
+  autonomous: true
+  iterative: true

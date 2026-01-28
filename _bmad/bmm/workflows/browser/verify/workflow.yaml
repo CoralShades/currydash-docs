@@ -1,0 +1,54 @@
+# Browser QA workflow: verify
+name: browser-verify
+description: "Automated documentation site verification using agent-browser - checks links, rendering, search, code blocks, navigation, and accessibility"
+author: "BMad"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+document_output_language: "{config_source}:document_output_language"
+date: system-generated
+
+# Workflow components
+installed_path: "{project-root}/_bmad/bmm/workflows/browser/verify"
+instructions: "{installed_path}/instructions.md"
+
+# Variables and inputs
+variables:
+  base_url: "http://localhost:3000"
+  screenshot_dir: "{output_folder}/browser-qa/verify"
+  report_file: "{output_folder}/browser-qa/verify/verification-report.md"
+  check_links: true
+  check_rendering: true
+  check_search: true
+  check_code_blocks: true
+  check_navigation: true
+  check_accessibility: true
+  use_profile: false
+  profile_path: "{project-root}/.browser-profiles/verify"
+
+# Output configuration
+default_output_file: "{report_file}"
+
+# Required tools
+required_tools:
+  - agent-browser  # CLI browser automation
+  - read_file
+  - write_file
+  - create_directory
+  - list_files
+
+tags:
+  - qa
+  - browser
+  - verification
+  - docs
+  - agent-browser
+  - accessibility
+
+execution_hints:
+  interactive: false
+  autonomous: true
+  iterative: true

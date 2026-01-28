@@ -62,6 +62,57 @@ currydash-docs/
 | `*paige da STORY-123` | Analyze completed story for documentation needs |
 | `*paige ds` | Apply all pending documentation changes |
 
+## Agent-Browser (Browser Automation)
+
+This project uses [agent-browser](https://github.com/vercel-labs/agent-browser) for AI-driven browser automation, documentation QA, and E2E testing.
+
+### Installation
+```bash
+npm install -g agent-browser
+agent-browser install          # Download Chromium
+```
+
+### Windows: Start Daemon First (Required)
+Due to a known Windows bug ([#37](https://github.com/vercel-labs/agent-browser/issues/37), [#132](https://github.com/vercel-labs/agent-browser/issues/132)),
+the Rust CLI cannot auto-start the daemon on Windows. Pre-start it manually:
+
+```powershell
+# Start daemon (run once per session)
+.\scripts\start-agent-browser.ps1
+
+# Then use agent-browser normally
+agent-browser open http://localhost:3000
+agent-browser snapshot
+agent-browser close
+
+# Stop daemon when done
+.\scripts\start-agent-browser.ps1 -Stop
+```
+
+### Quick Usage
+```bash
+agent-browser open http://localhost:3000    # Open docs site
+agent-browser snapshot                       # Get AI-readable accessibility tree
+agent-browser click @e2                      # Click element by ref
+agent-browser screenshot page.png --full     # Full-page screenshot
+agent-browser close                          # Close browser
+```
+
+### BMAD Integration
+- **Atlas Agent** (`/bmad/bmm/agents/browser-qa`): Browser QA & Automation Specialist
+- **TEA Agent**: Enhanced with browser testing menu items (BV, BE, BS)
+- **Workflows**:
+  - `/bmad/bmm/workflows/browser-verify` — Documentation site verification
+  - `/bmad/bmm/workflows/browser-test` — E2E browser testing
+  - `/bmad/bmm/workflows/browser-screenshot` — Visual screenshot capture
+
+### Key Principles
+- Always use `agent-browser snapshot` to get page state before interacting
+- Use `@eN` semantic refs from snapshots (not CSS selectors) when possible
+- Re-snapshot after any navigation or DOM change
+- Use `--session` flag for parallel isolated browser instances
+- Use `--profile` flag for persistent authenticated sessions
+
 ## Headless API Endpoints
 
 - `GET /api/docs` - Navigation structure/page map

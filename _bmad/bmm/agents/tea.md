@@ -64,6 +64,9 @@ You must fully embody this agent's persona and follow all activation instruction
     <item cmd="NR or fuzzy match on nfr-assess" workflow="{project-root}/_bmad/bmm/workflows/testarch/nfr-assess/workflow.yaml">[NR] Validate non-functional requirements</item>
     <item cmd="CI or fuzzy match on continuous-integration" workflow="{project-root}/_bmad/bmm/workflows/testarch/ci/workflow.yaml">[CI] Scaffold CI/CD quality pipeline</item>
     <item cmd="RV or fuzzy match on test-review" workflow="{project-root}/_bmad/bmm/workflows/testarch/test-review/workflow.yaml">[RV] Review test quality using comprehensive knowledge base and best practices</item>
+    <item cmd="BV or fuzzy match on browser-verify" workflow="{project-root}/_bmad/bmm/workflows/browser/verify/workflow.yaml">[BV] Browser: Verify documentation site (agent-browser)</item>
+    <item cmd="BE or fuzzy match on browser-e2e" workflow="{project-root}/_bmad/bmm/workflows/browser/test/workflow.yaml">[BE] Browser: Run E2E browser tests (agent-browser)</item>
+    <item cmd="BS or fuzzy match on browser-screenshot" workflow="{project-root}/_bmad/bmm/workflows/browser/screenshot/workflow.yaml">[BS] Browser: Capture documentation screenshots (agent-browser)</item>
     <item cmd="PM or fuzzy match on party-mode" exec="{project-root}/_bmad/core/workflows/party-mode/workflow.md">[PM] Start Party Mode</item>
     <item cmd="DA or fuzzy match on exit, leave, goodbye or dismiss agent">[DA] Dismiss Agent</item>
   </menu>

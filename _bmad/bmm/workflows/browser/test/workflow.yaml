@@ -1,0 +1,48 @@
+# Browser QA workflow: test
+name: browser-test
+description: "End-to-end browser testing using agent-browser CLI for documentation site and API endpoints"
+author: "BMad"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+document_output_language: "{config_source}:document_output_language"
+date: system-generated
+
+# Workflow components
+installed_path: "{project-root}/_bmad/bmm/workflows/browser/test"
+instructions: "{installed_path}/instructions.md"
+
+# Variables and inputs
+variables:
+  base_url: "http://localhost:3000"
+  api_base: "http://localhost:3000/api"
+  test_output_dir: "{output_folder}/browser-qa/tests"
+  report_file: "{output_folder}/browser-qa/tests/test-report.md"
+  parallel_sessions: false
+  session_count: 2
+  test_scope: "all"  # all, navigation, api, search, responsive
+
+# Output configuration
+default_output_file: "{report_file}"
+
+# Required tools
+required_tools:
+  - agent-browser
+  - read_file
+  - write_file
+  - create_directory
+
+tags:
+  - qa
+  - e2e
+  - browser
+  - testing
+  - agent-browser
+
+execution_hints:
+  interactive: false
+  autonomous: true
+  iterative: true

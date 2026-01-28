@@ -22,8 +22,16 @@ docs/out/
 .doc-changes/*.yaml
 !.doc-changes/.gitkeep
 
+# Agent Browser
+.browser-profiles/
+.browser-state/
+*.trace.zip
+docs-screenshot*.png
+
 # Auto Claude data directory
 .auto-claude/
 nul
 /.auto-claude/roadmap
 .auto-claude/roadmap/roadmap.json
+.vercel
+docs/public/_pagefind/*

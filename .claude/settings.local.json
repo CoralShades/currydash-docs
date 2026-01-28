@@ -51,7 +51,26 @@
       "Bash(node -e \"require\\(''./.auto-claude/roadmap/roadmap.json''\\); console.log\\(''roadmap.json: Valid JSON''\\)\")",
       "Bash(node -e \"require\\(''./.auto-claude/roadmap/roadmap_discovery.json''\\); console.log\\(''roadmap_discovery.json: Valid JSON''\\)\")",
       "Bash(node:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(claude --version)",
+      "Bash(where:*)",
+      "Bash(claude update:*)",
+      "Bash(claude settings --help:*)",
+      "Bash(powershell -Command \"\\(Get-Content ''C:\\\\Users\\\\User\\\\.claude.json'' -Raw\\) -replace ''\"\"autoUpdates\"\": false,'', ''\"\"autoUpdates\"\": true,'' | Set-Content ''C:\\\\Users\\\\User\\\\.claude.json'' -NoNewline\")",
+      "Bash(powershell -Command \"\\(Get-Content ''C:\\\\Users\\\\User\\\\.claude.json'' -Raw\\) -match ''\"\"autoUpdates\"\": \\(true|false\\)'' | Out-Null; $matches[1]\")",
+      "Skill(planning-with-files)",
+      "Bash(agent-browser:*)",
+      "Bash(AGENT_BROWSER_ARGS=\"--no-sandbox,--disable-gpu\" agent-browser open:*)",
+      "Bash(npx -y agent-browser open:*)",
+      "Bash(\"C:\\\\nvm4w\\\\nodejs\\\\node_modules\\\\agent-browser\\\\bin\\\\agent-browser-win32-x64.exe\" --version)",
+      "Bash(\"C:\\\\nvm4w\\\\nodejs\\\\node_modules\\\\agent-browser\\\\bin\\\\agent-browser-win32-x64.exe\" open https://example.com)",
+      "Bash(gh issue view:*)",
+      "Bash(netsh interface ipv4 show excludedportrange protocol=tcp:*)",
+      "Bash(npx:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)",
+      "Bash(powershell:*)",
+      "mcp__chrome-devtools__evaluate_script",
+      "mcp__chrome-devtools__list_pages"
     ]
   }
 }
