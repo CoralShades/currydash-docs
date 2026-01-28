@@ -1,0 +1,30 @@
+// developers/backend/architecture/_meta.js
+//
+
+export default {
+  index: 'Overview',
+  'overview': 'Overview',
+  'table-of-contents': 'Table Of Contents',
+  'architecture-solution': 'Architecture Solution',
+  'laravel-project-structure': 'Laravel Project Structure',
+  'modular-architecture': 'Modular Architecture',
+  'code-organization-principles': 'Code Organization Principles',
+  'design-patterns': 'Design Patterns',
+  'service-layer-business-logic': 'Service Layer Business Logic',
+  'data-flow': 'Data Flow',
+  'authentication-authorization': 'Authentication Authorization',
+  'api-specification': 'Api Specification',
+  'order-system-architecture': 'Order System Architecture',
+  'restaurant-system-architecture': 'Restaurant System Architecture',
+  'subscription-system-architecture': 'Subscription System Architecture',
+  'package-system-architecture-cpfp': 'Package System Architecture Cpfp',
+  'payment-gateway-integration': 'Payment Gateway Integration',
+  'notification-system': 'Notification System',
+  'file-storage-cdn': 'File Storage Cdn',
+  'caching-strategy': 'Caching Strategy',
+  'centrallogics-orchestration-layer-cur': 'Centrallogics Orchestration Layer Cur',
+  'cross-project-integration': 'Cross Project Integration',
+  'architecture-gaps-future-improvements': 'Architecture Gaps Future Improvements',
+  'next-steps': 'Next Steps',
+  'version-history': 'Version History',
+}

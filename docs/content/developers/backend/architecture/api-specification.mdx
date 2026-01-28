@@ -4,7 +4,8 @@
 **Repository**: Admin-Seller_Portal
 **API Version**: v1.0
 **Base URL**: `https://currydash.au/api/v1/`
-**Last Updated**: 2025-12-10
+**Last Updated**: 2026-01-22
+**Last Verified**: 2026-01-22 (Documentation migration & content modernization)
 
 ---
 
@@ -35,9 +36,8 @@ This document provides the **server-side API specification** for the CurryDash b
 
 📚 **Cross-Project References**:
 - **Client API Reference**: [User-Web-Mobile/docs/api-reference.md](https://github.com/CoralShades/User-Web-Mobile/blob/main/docs/api-reference.md) - 100+ endpoints from mobile/web perspective
-- **Architecture**: [architecture.md](architecture.md) - Laravel structure and patterns
-- **Database Schema**: [database-schema.md](database-schema.md) - Data models and relationships
-- **Business Logic**: [business-logic.md](business-logic.md) - Validation rules and workflows
+- **Architecture**: [Backend Architecture](./index) - Laravel structure and patterns
+- **Business Logic**: [Service Layer & Business Logic](./service-layer-business-logic) - Validation rules and workflows
 
 ---
 
@@ -765,7 +765,7 @@ $cart = Cart::create([
 ]
 ```
 
-**Business Logic** (See [business-logic.md](business-logic.md)):
+**Business Logic** (See [Service Layer & Business Logic](./service-layer-business-logic)):
 1. Validate cart is not empty
 2. Validate delivery address is within restaurant zone
 3. Validate minimum order amount
@@ -1171,7 +1171,7 @@ X-RateLimit-Reset: 1670650800
 
 1. **Review controller implementation**: Check `app/Http/Controllers/Api/V1/` for endpoint logic
 2. **Study validation rules**: Review `app/Http/Requests/` for form request validation
-3. **Understand business logic**: Read [business-logic.md](business-logic.md) for validation rules
+3. **Understand business logic**: Read [Service Layer & Business Logic](./service-layer-business-logic) for validation rules
 4. **Test endpoints**: Use Postman collection or PHPUnit tests
 
 ### For Mobile/Web Developers
@@ -1190,5 +1190,5 @@ X-RateLimit-Reset: 1670650800
 ---
 
 **Version**: v1.0
-**Last Updated**: 2025-12-10
+**Last Updated**: 2026-01-22 (Documentation migration & modernization)
 **Maintainer**: CurryDash Backend Team

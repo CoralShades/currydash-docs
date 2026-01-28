@@ -1,0 +1,992 @@
+---
+stepsCompleted: [1, 2, 3, 4, 5, 6, 7]
+inputDocuments:
+  - docs/prd.md
+  - docs/architecture.md
+  - docs/index.md
+  - docs/api-specification.md
+  - docs/database-schema.md
+  - .ai-memory/codebase-exploration-report.md
+  - .ai-memory/research-vendor-onboarding.md
+  - .ai-memory/research-ui-ux-patterns.md
+workflowType: 'architecture'
+lastStep: 0
+project_name: 'CurryDash-Admin-Vendor'
+user_name: 'User'
+date: '2025-12-16'
+---
+
+# Architecture Decision Document
+
+_This document builds collaboratively through step-by-step discovery. Sections are appended as we work through each architectural decision together._
+
+## Project Context Analysis
+
+### Requirements Overview
+
+**Functional Requirements (98 FRs):**
+
+| Capability Area | FR Count | Architectural Impact |
+|-----------------|----------|---------------------|
+| Vendor Account & Onboarding | 8 | Registration flow, document storage, verification workflow |
+| Menu & Package Management | 12 | CRUD operations, image handling, drag-drop state management |
+| Order Management | 9 | Real-time dashboard, status workflow, driver tracking integration |
+| Subscription Management | 8 | Scheduled job processing, recurring order generation |
+| Analytics & Reporting | 9 | Query optimization, caching, export generation |
+| Admin Operations | 10 | Queue management, bulk operations, quality workflows |
+| Customer Support | 7 | Ticket system, case context aggregation, escalation |
+| User & Role Management | 7 | RBAC, zone scoping, audit trail |
+| Financial Management | 8 | Commission calculation, payout processing, GST handling |
+| Notifications | 6 | Multi-channel delivery (push, email, SMS) |
+| System Configuration & API | 14 | Settings management, feature flags, 70 frontend FR support |
+
+**Non-Functional Requirements (53 NFRs):**
+
+| Category | NFR Count | Key Constraints |
+|----------|-----------|-----------------|
+| Performance | 8 | `<200ms` API p95, `<2s` dashboard, `<100ms` DB queries |
+| Security | 12 | TLS 1.2+, JWT rotation, PCI-DSS via Stripe, APP compliance |
+| Scalability | 6 | 10x growth capacity, 100k+ orders, 3x peak load |
+| Reliability | 8 | 99.5% uptime, 100% order durability, atomic payments |
+| Accessibility | 6 | WCAG 2.1 Level A, keyboard navigation |
+| Integration | 7 | Stripe, Firebase, SMS failover, S3 storage |
+| Maintainability | 6 | PSR-12, test coverage, reversible migrations |
+
+**Scale & Complexity:**
+- Primary domain: **Laravel 9.x+ web application + REST API backend**
+- Complexity level: **High** (multi-vendor, subscriptions, payments, real-time)
+- Estimated architectural components: **15-20** (existing + new)
+
+### Technical Constraints & Dependencies
+
+**Existing Infrastructure (Must Preserve):**
+- Laravel 9.x+ framework (PHP 8.1+)
+- MySQL database with 259 migrations
+- Eloquent ORM with global scopes (ZoneScope, RestaurantScope)
+- Laravel Passport for OAuth2/JWT
+- Blade templating for dashboards
+- Package system (CPFP) fully implemented
+
+**External Dependencies:**
+- Stripe PHP SDK for payment processing
+- Firebase Admin SDK for push notifications
+- AWS S3 / DigitalOcean Spaces for media storage
+- SMTP provider for transactional email
+- SMS gateway (Twilio/Nexmo configurable)
+
+**Technical Debt to Address:**
+1. CentralLogics monolith → Extract to service classes
+2. No test coverage → Add critical path tests
+3. Synchronous operations → Add queue jobs
+4. Ad-hoc API responses → Standardize with Resources
+5. No systematic caching → Implement caching strategy
+
+### Cross-Cutting Concerns Identified
+
+| Concern | Scope | Architectural Pattern Needed |
+|---------|-------|------------------------------|
+| Authentication | All APIs + Dashboards | Guard strategy (JWT + Session) |
+| Authorization | All operations | Policy-based RBAC with zone scoping |
+| Audit Logging | Admin actions | Observer pattern with audit trail |
+| Error Handling | All layers | Consistent response format + monitoring |
+| Notifications | Multi-channel | Event-driven with channel routing |
+| Caching | Read-heavy endpoints | Cache-aside with tag invalidation |
+| Rate Limiting | API endpoints | Middleware-based per-category limits |
+| File Storage | Images, documents | Abstracted storage with CDN |
+
+## Starter Template Evaluation
+
+### Primary Technology Domain
+
+**Laravel 9.x+ Brownfield Application** - extending existing multi-vendor food delivery platform
+
+This is NOT a greenfield project requiring starter selection. The architectural foundation is already established through the existing StackFood-based codebase.
+
+### Existing Foundation Analysis
+
+**Core Framework (Preserve):**
+- Laravel 9.x+ with PHP 8.1+
+- Eloquent ORM with 143 models
+- Blade templating for admin/vendor dashboards
+- Laravel Passport for JWT authentication
+- Laravel Mix for asset compilation
+
+**Established Patterns (Follow):**
+```
+app/
+├── Http/Controllers/
+│   ├── Admin/          # Admin dashboard controllers
+│   ├── Vendor/         # Vendor dashboard controllers
+│   └── Api/v1/         # API controllers
+├── Models/             # 143 Eloquent models
+├── CentralLogics/      # Shared business logic (refactor target)
+├── Repositories/       # Data access layer
+└── Services/           # Business services (expand)
+```
+
+**Database Schema (Maintain):**
+- 259 migrations defining complete schema
+- Global scopes (ZoneScope, RestaurantScope)
+- Polymorphic relationships for flexibility
+- JSON columns for flexible attributes
+
+### Enhancement Stack (Add)
+
+| Component | Purpose | Package |
+|-----------|---------|---------|
+| Queue System | Async job processing | Laravel Horizon |
+| Cache Layer | Redis caching | predis/predis |
+| API Resources | Response standardization | Built-in |
+| Rate Limiting | API protection | Built-in (throttle) |
+| Testing | Critical path tests | PHPUnit + Pest |
+| Static Analysis | Code quality | PHPStan Level 5 |
+
+### Initialization Commands
+
+**No new project initialization required.** Instead, add enhancement packages:
+
+```bash
+# Queue system
+composer require laravel/horizon
+php artisan horizon:install
+
+# Static analysis
+composer require --dev phpstan/phpstan
+
+# Testing enhancements
+composer require --dev pestphp/pest
+php artisan pest:install
+```
+
+### Architectural Decisions Provided by Foundation
+
+**Language & Runtime:**
+- PHP 8.1+ with strict types where applicable
+- Composer for dependency management
+- PSR-12 coding standard
+
+**Styling Solution (Dashboards):**
+- Bootstrap 5 for admin/vendor UI
+- Custom CSS for brand theming
+- jQuery for progressive enhancement
+
+**Build Tooling:**
+- Laravel Mix (webpack abstraction)
+- Vite migration path available for Laravel 10
+
+**Testing Framework:**
+- PHPUnit for unit/feature tests
+- Pest for expressive test syntax
+- Laravel Dusk for browser testing (optional)
+
+**Code Organization:**
+- Controllers → Services → Repositories → Models
+- API Resources for response transformation
+- Form Requests for validation
+- Policies for authorization
+
+**Development Experience:**
+- Artisan CLI for scaffolding
+- Tinker for REPL exploration
+- Laravel Telescope for debugging (dev only)
+- IDE Helper for autocomplete
+
+**Note:** This brownfield project follows existing patterns. New features should follow established conventions while incrementally addressing technical debt.
+
+## Core Architectural Decisions
+
+### Decision Priority Analysis
+
+**Critical Decisions (Block Implementation):**
+1. Service Layer Architecture - How to organize business logic
+2. API Response Standardization - Consistent format for mobile/web apps
+3. Queue Processing Strategy - Async operations for scale
+4. Caching Architecture - Meet `<200ms` API target
+
+**Important Decisions (Shape Architecture):**
+5. Error Handling Strategy - Consistent error responses
+6. Rate Limiting Implementation - Per-category limits
+7. Audit Trail Architecture - Admin action logging
+8. Testing Strategy - Critical path coverage
+
+**Deferred Decisions (Post-MVP):**
+- WebSocket/Real-time architecture (Phase 2)
+- Multi-region deployment (Phase 3)
+- Event sourcing for analytics (Phase 3)
+
+### Data Architecture
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Primary Database** | MySQL 8.0 | Existing infrastructure, well-indexed, meets 100k+ order scale |
+| **ORM Pattern** | Eloquent Active Record | Established pattern, 143 models exist, maintain consistency |
+| **Query Optimization** | Eager loading + Query caching | Address N+1, use `with()` consistently |
+| **Cache Backend** | Redis 7.x | Session, cache, queue driver unification |
+| **Cache Strategy** | Cache-aside with tag invalidation | Restaurant/menu data cached, invalidate on update |
+| **Cache TTL** | 5min (lists), 1hr (config), 24hr (static) | Balance freshness vs performance |
+
+**Caching Implementation:**
+```php
+// Pattern for cacheable queries
+Cache::tags(['restaurants', "zone:{$zoneId}"])
+    ->remember("restaurants:active:{$zoneId}", 300, fn() =>
+        Restaurant::active()->inZone($zoneId)->with('packages')->get()
+    );
+```
+
+### Authentication & Security
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **API Auth** | Laravel Passport (JWT) | Already implemented, mobile-friendly |
+| **Dashboard Auth** | Session with CSRF | Standard Laravel web auth, existing implementation |
+| **Token Lifetime** | 24hr access, 7d refresh | Balance security vs UX |
+| **Password Hashing** | bcrypt (cost 12) | NFR10 requirement |
+| **Rate Limiting** | Per-route throttle middleware | NFR19 requirements |
+| **RBAC Pattern** | Policy-based with zone scoping | Existing AdminRole + Zone model |
+
+**Rate Limit Configuration:**
+```php
+// RouteServiceProvider or route middleware
+RateLimiter::for('api', fn($request) =>
+    Limit::perMinute(60)->by($request->user()?->id ?: $request->ip())
+);
+RateLimiter::for('auth', fn($request) =>
+    Limit::perMinute(5)->by($request->ip())
+);
+RateLimiter::for('orders', fn($request) =>
+    Limit::perMinute(10)->by($request->user()->id)
+);
+```
+
+### API & Communication Patterns
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **API Style** | REST with JSON | Existing pattern, mobile team familiarity |
+| **Response Format** | Laravel API Resources | Standardize transformation, version control |
+| **Error Format** | Consistent JSON structure | NFR requirement for predictable errors |
+| **Versioning** | URI-based (/api/v1/) | Already implemented, clear separation |
+| **Documentation** | OpenAPI 3.0 (auto-generated) | L5-Swagger package for automation |
+
+**Standardized Response Format:**
+```json
+// Success
+{
+  "status": true,
+  "message": "Operation successful",
+  "data": { ... }
+}
+
+// Error
+{
+  "status": false,
+  "message": "Human-readable error",
+  "errors": [
+    { "field": "email", "message": "Already exists" }
+  ],
+  "code": "VALIDATION_ERROR"
+}
+```
+
+**API Resource Pattern:**
+```php
+// app/Http/Resources/Api/V1/PackageResource.php
+class PackageResource extends JsonResource
+{
+    public function toArray($request): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'base_price' => (float) $this->base_price,
+            'configurations' => PackageConfigurationResource::collection(
+                $this->whenLoaded('configurations')
+            ),
+            'restaurant' => new RestaurantResource($this->whenLoaded('restaurant')),
+        ];
+    }
+}
+```
+
+### Service Layer Architecture
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Business Logic** | Service classes (extract from CentralLogics) | Single responsibility, testable |
+| **Service Pattern** | Action classes for complex operations | Clear command pattern |
+| **Validation** | Form Request classes | Separation of concerns, reusable |
+| **Data Access** | Repository pattern (optional) | Direct Eloquent acceptable for MVP |
+
+**Service Extraction Priority:**
+```
+app/Services/
+├── Order/
+│   ├── CreateOrderAction.php       # From CentralLogics
+│   ├── OrderStatusService.php      # Status workflow
+│   └── OrderRefundAction.php       # Refund processing
+├── Package/
+│   ├── PackageValidationService.php
+│   └── PackagePricingService.php
+├── Subscription/
+│   ├── SubscriptionScheduler.php   # Cron job logic
+│   └── RecurringOrderGenerator.php
+├── Notification/
+│   ├── NotificationService.php     # Multi-channel
+│   └── Channels/                   # Push, Email, SMS
+└── Payment/
+    └── StripePaymentService.php    # Payment processing
+```
+
+### Queue & Async Processing
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Queue Driver** | Redis via Horizon | Visibility, retry handling, monitoring |
+| **Job Priority** | High (orders), Default (notifications), Low (reports) | User-facing priority |
+| **Retry Strategy** | 3 retries with exponential backoff | NFR47 requirement |
+| **Failed Jobs** | Database logging + alerts | Visibility for debugging |
+
+**Queue Configuration:**
+```php
+// config/horizon.php
+'environments' => [
+    'production' => [
+        'supervisor-1' => [
+            'connection' => 'redis',
+            'queue' => ['high', 'default', 'low'],
+            'processes' => 10,
+            'tries' => 3,
+            'timeout' => 60,
+        ],
+    ],
+],
+```
+
+### Infrastructure & Deployment
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Hosting** | Single VPS (MVP) → Load balanced (Growth) | Start simple, scale path clear |
+| **Web Server** | Nginx + PHP-FPM 8.1 | Standard Laravel deployment |
+| **Process Manager** | Supervisor | Horizon, queue workers |
+| **Static Assets** | CDN (Cloudflare/S3) | NFR25 requirement |
+| **Monitoring** | Laravel Telescope (dev) + external APM (prod) | Debug + production visibility |
+| **Logging** | Laravel Log → aggregated (Papertrail/CloudWatch) | Centralized debugging |
+
+**Deployment Pipeline:**
+```yaml
+# Simplified CI/CD
+- Run tests (PHPUnit)
+- Static analysis (PHPStan level 5)
+- Build assets (npm run production)
+- Deploy via Git pull or Envoy
+- Run migrations
+- Clear caches
+- Restart queue workers
+```
+
+### Decision Impact Analysis
+
+**Implementation Sequence:**
+1. Add Redis configuration (cache, session, queue)
+2. Install Laravel Horizon
+3. Create base API Resource classes
+4. Extract first service (OrderStatusService)
+5. Add rate limiting middleware
+6. Implement standardized error handling
+7. Add critical path tests
+
+**Cross-Component Dependencies:**
+- Queue system enables: notifications, report generation, subscription scheduling
+- Cache layer enables: `<200ms` API targets, reduced DB load
+- Service extraction enables: testability, code reuse, maintainability
+
+## Implementation Patterns & Consistency Rules
+
+### Pattern Categories Defined
+
+**Critical Conflict Points Identified:** 12 areas where AI agents could make different choices
+
+These patterns ensure consistency across all implementation work, preventing conflicts when multiple agents work on different features.
+
+### Naming Patterns
+
+**Database Naming Conventions:**
+
+| Element | Pattern | Example |
+|---------|---------|---------|
+| Tables | snake_case, plural | `restaurants`, `package_configurations` |
+| Columns | snake_case | `created_at`, `restaurant_id`, `is_active` |
+| Foreign Keys | `{table}_id` | `restaurant_id`, `user_id` |
+| Pivot Tables | alphabetical snake_case | `food_package_option`, `restaurant_zone` |
+| Indexes | `{table}_{columns}_index` | `orders_restaurant_id_index` |
+| JSON Columns | snake_case | `module_permissions`, `addon_ids` |
+
+**API Naming Conventions:**
+
+| Element | Pattern | Example |
+|---------|---------|---------|
+| Endpoints | kebab-case, plural | `/api/v1/restaurants`, `/api/v1/package-configurations` |
+| Route Parameters | `{id}` format | `/restaurants/{id}/packages` |
+| Query Parameters | snake_case | `?zone_id=1&is_active=true` |
+| Action Endpoints | verb suffix | `/orders/{id}/accept`, `/subscriptions/{id}/pause` |
+
+**Code Naming Conventions:**
+
+| Element | Pattern | Example |
+|---------|---------|---------|
+| Controllers | PascalCase + Controller | `PackageController`, `VendorOrderController` |
+| Models | PascalCase, singular | `Restaurant`, `PackageConfiguration` |
+| Services | PascalCase + Service/Action | `OrderStatusService`, `CreateOrderAction` |
+| Jobs | PascalCase + Job | `SendOrderNotificationJob` |
+| Events | PascalCase + past tense | `OrderAccepted`, `VendorApproved` |
+| Form Requests | PascalCase + Request | `StorePackageRequest`, `UpdateOrderStatusRequest` |
+| Resources | PascalCase + Resource | `PackageResource`, `OrderResource` |
+| Policies | PascalCase + Policy | `OrderPolicy`, `RestaurantPolicy` |
+
+### Structure Patterns
+
+**Project Organization (Existing - Follow):**
+
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── Admin/           # Admin dashboard controllers
+│   │   ├── Vendor/          # Vendor dashboard controllers
+│   │   └── Api/v1/          # API controllers (new pattern)
+│   ├── Requests/            # Form Request validation
+│   ├── Resources/           # API Resources (new)
+│   │   └── Api/V1/          # Versioned resources
+│   └── Middleware/
+├── Models/                  # Eloquent models
+├── Services/                # Business logic services (new)
+│   ├── Order/
+│   ├── Package/
+│   ├── Subscription/
+│   └── Notification/
+├── Jobs/                    # Queue jobs
+├── Events/                  # Domain events
+├── Listeners/               # Event listeners
+├── Policies/                # Authorization policies
+└── CentralLogics/           # Legacy (do not add new code here)
+
+tests/
+├── Feature/
+│   ├── Api/                 # API endpoint tests
+│   ├── Admin/               # Admin feature tests
+│   └── Vendor/              # Vendor feature tests
+└── Unit/
+    └── Services/            # Service unit tests
+```
+
+**File Naming Patterns:**
+
+| Type | Location | Naming |
+|------|----------|--------|
+| Controllers | `app/Http/Controllers/{Context}/` | `{Entity}Controller.php` |
+| Models | `app/Models/` | `{Entity}.php` |
+| Migrations | `database/migrations/` | `{date}_create_{table}_table.php` |
+| Services | `app/Services/{Domain}/` | `{Name}Service.php` or `{Verb}{Entity}Action.php` |
+| Tests | `tests/{Feature\|Unit}/` | `{Entity}Test.php` |
+| Resources | `app/Http/Resources/Api/V1/` | `{Entity}Resource.php` |
+
+### Format Patterns
+
+**API Response Formats:**
+
+```json
+// Success Response (single item)
+{
+    "status": true,
+    "message": "Package retrieved successfully",
+    "data": {
+        "id": 1,
+        "name": "Family Curry Pack",
+        "base_price": 45.00
+    }
+}
+
+// Success Response (collection)
+{
+    "status": true,
+    "message": "Packages retrieved successfully",
+    "data": [
+        { "id": 1, "name": "..." },
+        { "id": 2, "name": "..." }
+    ],
+    "meta": {
+        "current_page": 1,
+        "total": 50,
+        "per_page": 15
+    }
+}
+
+// Error Response
+{
+    "status": false,
+    "message": "Validation failed",
+    "errors": [
+        { "field": "name", "message": "Name is required" }
+    ],
+    "code": "VALIDATION_ERROR"
+}
+```
+
+**Error Codes (Standardized):**
+`VALIDATION_ERROR`, `AUTHENTICATION_ERROR`, `AUTHORIZATION_ERROR`, `NOT_FOUND`, `RATE_LIMITED`, `PAYMENT_FAILED`, `SERVER_ERROR`
+
+**Data Exchange Formats:**
+
+| Data Type | Format | Example |
+|-----------|--------|---------|
+| Dates (JSON) | ISO 8601 | `"2025-12-16T10:30:00Z"` |
+| Currency | Float, 2 decimals | `45.00` |
+| Booleans | true/false | `"is_active": true` |
+| IDs | Integer | `"id": 123` |
+| Enums | snake_case string | `"status": "pending"` |
+| Nulls | Explicit null | `"deleted_at": null` |
+
+### Communication Patterns
+
+**Event System Patterns:**
+
+```php
+// Event Naming: PascalCase, past tense verb
+OrderAccepted::class
+OrderStatusChanged::class
+VendorApproved::class
+
+// Event Payload Structure
+class OrderAccepted
+{
+    public function __construct(
+        public readonly Order $order,
+        public readonly ?string $acceptedBy = null,
+        public readonly Carbon $acceptedAt = new Carbon(),
+    ) {}
+}
+```
+
+**Queue Job Patterns:**
+
+```php
+// Job Naming: {Verb}{Entity}Job
+SendOrderNotificationJob::class
+GenerateMonthlyReportJob::class
+
+// Queue Assignment
+$job->onQueue('high');     // Orders, payments
+$job->onQueue('default');  // Notifications
+$job->onQueue('low');      // Reports, analytics
+```
+
+### Process Patterns
+
+**Transaction Patterns:**
+
+```php
+// Always wrap multi-model operations in transactions
+DB::transaction(function () use ($orderData) {
+    $order = Order::create($orderData);
+    $order->details()->createMany($orderData['items']);
+    event(new OrderCreated($order));
+});
+```
+
+**Validation Patterns:**
+
+```php
+// Always use Form Requests for validation
+class StorePackageRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'base_price' => ['required', 'numeric', 'min:0'],
+            'restaurant_id' => ['required', 'exists:restaurants,id'],
+        ];
+    }
+}
+```
+
+### Enforcement Guidelines
+
+**All AI Agents MUST:**
+
+1. Follow existing naming conventions - check similar files before creating new ones
+2. Use Form Requests for all input validation (never validate in controllers)
+3. Use API Resources for all API responses (never return models directly)
+4. Place business logic in Services, not Controllers or Models
+5. Use transactions for multi-table operations
+6. Add to Services directory, never to CentralLogics (legacy)
+7. Include PHPDoc blocks for public methods
+8. Follow PSR-12 coding standards
+
+**Pattern Verification:**
+
+- Run `./vendor/bin/phpstan analyse` before committing
+- Run `./vendor/bin/phpcs` for PSR-12 compliance
+- Review existing similar implementations before creating new patterns
+
+### Anti-Patterns (AVOID)
+
+```php
+// ❌ DON'T: Validation in controller
+public function store(Request $request) {
+    $request->validate(['name' => 'required']); // Use Form Request instead
+}
+
+// ❌ DON'T: Return model directly
+return $package; // Use Resource instead
+
+// ❌ DON'T: Business logic in controller
+// Move to Service instead
+
+// ❌ DON'T: Add to CentralLogics
+// Create Service instead
+```
+
+## Project Structure & Boundaries
+
+### Complete Project Structure
+
+```
+Admin-Seller_Portal/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Admin/                    # Admin dashboard (CAD-*)
+│   │   │   │   ├── VendorController.php  # CAD-03: Vendor management
+│   │   │   │   ├── OrderController.php   # CAD-04: Order monitoring
+│   │   │   │   ├── SubscriptionController.php
+│   │   │   │   ├── ComplaintController.php
+│   │   │   │   ├── ReportController.php
+│   │   │   │   ├── UserController.php
+│   │   │   │   └── SettingsController.php
+│   │   │   ├── Vendor/                   # Vendor dashboard (CAR-*)
+│   │   │   │   ├── ProfileController.php
+│   │   │   │   ├── MenuController.php    # CAR-02: Menu management
+│   │   │   │   ├── PackageController.php # CAR-02: Package management
+│   │   │   │   ├── OrderController.php   # CAR-03: Order management
+│   │   │   │   ├── SubscriptionController.php
+│   │   │   │   ├── AnalyticsController.php
+│   │   │   │   └── SettingsController.php
+│   │   │   └── Api/
+│   │   │       └── v1/                   # API endpoints (CUR-*)
+│   │   │           ├── Auth/
+│   │   │           │   ├── LoginController.php
+│   │   │           │   ├── RegisterController.php
+│   │   │           │   └── PasswordController.php
+│   │   │           ├── Restaurant/
+│   │   │           │   ├── RestaurantController.php
+│   │   │           │   ├── MenuController.php
+│   │   │           │   └── PackageController.php
+│   │   │           ├── Order/
+│   │   │           │   ├── OrderController.php
+│   │   │           │   ├── CartController.php
+│   │   │           │   └── SubscriptionController.php
+│   │   │           ├── Customer/
+│   │   │           │   ├── ProfileController.php
+│   │   │           │   ├── AddressController.php
+│   │   │           │   └── WalletController.php
+│   │   │           └── Notification/
+│   │   │               └── NotificationController.php
+│   │   ├── Requests/
+│   │   │   ├── Admin/
+│   │   │   ├── Vendor/
+│   │   │   └── Api/V1/
+│   │   ├── Resources/
+│   │   │   └── Api/V1/
+│   │   │       ├── RestaurantResource.php
+│   │   │       ├── PackageResource.php
+│   │   │       ├── OrderResource.php
+│   │   │       └── ...
+│   │   └── Middleware/
+│   │       ├── AdminAuth.php
+│   │       ├── VendorAuth.php
+│   │       ├── ZoneScope.php
+│   │       └── RateLimitByCategory.php
+│   ├── Models/                           # 143+ Eloquent models
+│   │   ├── Restaurant.php
+│   │   ├── Package.php
+│   │   ├── PackageConfiguration.php
+│   │   ├── PackageOption.php
+│   │   ├── Order.php
+│   │   ├── Subscription.php
+│   │   └── ...
+│   ├── Services/                         # Business logic (NEW)
+│   │   ├── Order/
+│   │   │   ├── CreateOrderAction.php
+│   │   │   ├── OrderStatusService.php
+│   │   │   └── OrderRefundAction.php
+│   │   ├── Package/
+│   │   │   ├── PackageValidationService.php
+│   │   │   └── PackagePricingService.php
+│   │   ├── Subscription/
+│   │   │   ├── SubscriptionScheduler.php
+│   │   │   └── RecurringOrderGenerator.php
+│   │   ├── Notification/
+│   │   │   ├── NotificationService.php
+│   │   │   └── Channels/
+│   │   │       ├── PushChannel.php
+│   │   │       ├── EmailChannel.php
+│   │   │       └── SmsChannel.php
+│   │   └── Payment/
+│   │       └── StripePaymentService.php
+│   ├── Jobs/
+│   │   ├── SendOrderNotificationJob.php
+│   │   ├── GenerateRecurringOrderJob.php
+│   │   ├── ProcessPayoutJob.php
+│   │   └── GenerateReportJob.php
+│   ├── Events/
+│   │   ├── OrderCreated.php
+│   │   ├── OrderAccepted.php
+│   │   ├── OrderStatusChanged.php
+│   │   ├── VendorApproved.php
+│   │   └── SubscriptionRenewed.php
+│   ├── Listeners/
+│   │   ├── NotifyCustomerOnOrderStatus.php
+│   │   ├── NotifyVendorOnNewOrder.php
+│   │   └── UpdateAnalyticsOnOrder.php
+│   ├── Policies/
+│   │   ├── OrderPolicy.php
+│   │   ├── RestaurantPolicy.php
+│   │   └── SubscriptionPolicy.php
+│   ├── CentralLogics/                    # Legacy (DO NOT ADD NEW CODE)
+│   └── Repositories/                     # Data access layer
+├── database/
+│   ├── migrations/                       # 259+ migrations
+│   ├── seeders/
+│   └── factories/
+├── resources/
+│   ├── views/
+│   │   ├── admin/                        # Admin Blade templates
+│   │   └── vendor/                       # Vendor Blade templates
+│   ├── js/
+│   └── css/
+├── routes/
+│   ├── admin.php                         # Admin dashboard routes
+│   ├── vendor.php                        # Vendor dashboard routes
+│   └── api.php                           # API routes (versioned)
+├── tests/
+│   ├── Feature/
+│   │   ├── Api/
+│   │   │   ├── OrderTest.php
+│   │   │   ├── PackageTest.php
+│   │   │   └── AuthTest.php
+│   │   ├── Admin/
+│   │   └── Vendor/
+│   └── Unit/
+│       └── Services/
+│           ├── OrderStatusServiceTest.php
+│           └── PackagePricingServiceTest.php
+├── config/
+│   ├── horizon.php                       # Queue dashboard
+│   ├── stripe.php                        # Payment config
+│   └── currydash.php                     # App-specific config
+└── docs/
+    ├── prd.md                            # Product Requirements
+    ├── architecture.md                   # Technical Reference
+    ├── architecture-solution.md          # This document
+    ├── api-specification.md              # API Documentation
+    └── database-schema.md                # Schema Reference
+```
+
+### Architectural Boundaries
+
+**API Boundary:**
+- All external access via `/api/v1/` routes
+- JWT authentication required (Laravel Passport)
+- Rate limiting per category (auth: 5/min, api: 60/min, orders: 10/min)
+- Standardized JSON response format
+
+**Component Boundaries:**
+| Component | Responsibility | Dependencies |
+|-----------|----------------|--------------|
+| Controllers | HTTP handling, request/response | Services, Resources |
+| Services | Business logic | Models, External APIs |
+| Models | Data access, relationships | Database |
+| Jobs | Async processing | Services |
+| Events/Listeners | Decoupled notifications | Services |
+
+**Data Boundaries:**
+- Read operations: Cache → Database fallback
+- Write operations: Database → Cache invalidation → Event dispatch
+- External API calls: Always via Service layer with error handling
+
+### FR Category to Directory Mapping
+
+| FR Category | Primary Directory | Secondary |
+|-------------|-------------------|-----------|
+| Vendor Account (CAR-01) | `Http/Controllers/Vendor/` | `Services/Vendor/` |
+| Menu/Package (CAR-02) | `Http/Controllers/Vendor/` | `Services/Package/` |
+| Order Management (CAR-03) | `Http/Controllers/{Vendor,Admin}/` | `Services/Order/` |
+| Subscriptions (CAR-04) | `Http/Controllers/Vendor/` | `Services/Subscription/` |
+| Analytics (CAR-05) | `Http/Controllers/{Vendor,Admin}/` | `Services/Analytics/` |
+| Admin Operations (CAD-*) | `Http/Controllers/Admin/` | `Services/Admin/` |
+| API Endpoints (CUR-*) | `Http/Controllers/Api/v1/` | `Http/Resources/Api/V1/` |
+| Notifications | `Jobs/`, `Events/`, `Listeners/` | `Services/Notification/` |
+
+### Integration Points
+
+**Internal Integration:**
+```
+Flutter App ──→ API Controllers ──→ Services ──→ Models
+                     ↓
+Admin/Vendor ──→ Web Controllers ──→ Services ──→ Models
+Dashboards                              ↓
+                              External Services
+```
+
+**External Integration Points:**
+
+| Service | Integration Method | Files |
+|---------|-------------------|-------|
+| Stripe | `stripe-php` SDK | `Services/Payment/StripePaymentService.php` |
+| Firebase | Admin SDK | `Services/Notification/Channels/PushChannel.php` |
+| AWS S3 | Flysystem adapter | `config/filesystems.php` |
+| SMS | HTTP client | `Services/Notification/Channels/SmsChannel.php` |
+| SMTP | Laravel Mail | `config/mail.php` |
+
+### Development Workflow Commands
+
+```bash
+# Start development
+php artisan serve
+npm run dev
+
+# Queue processing
+php artisan horizon
+
+# Run tests
+php artisan test
+./vendor/bin/pest
+
+# Static analysis
+./vendor/bin/phpstan analyse
+
+# Code style
+./vendor/bin/phpcs --standard=PSR12 app/
+
+# Cache management
+php artisan cache:clear
+php artisan config:cache
+php artisan route:cache
+```
+
+## Architecture Validation Results
+
+### Coherence Validation ✅
+
+**Decision Compatibility:**
+All architectural decisions work together without conflicts. The Laravel 9.x+ foundation, Redis unified backend (cache/session/queue), MySQL 8.0+ database, and Laravel Passport authentication form a cohesive stack with proven integration patterns.
+
+**Pattern Consistency:**
+Implementation patterns align with technology choices:
+- Service layer supports Laravel's dependency injection
+- API Resources leverage Eloquent relationships
+- Queue jobs integrate with Horizon dashboard
+- Form Requests use Laravel's validation system
+
+**Structure Alignment:**
+Project structure enables all architectural decisions:
+- Clear separation supports service extraction from CentralLogics
+- Versioned API paths support backward compatibility
+- Test directories mirror source structure
+
+### Requirements Coverage Validation ✅
+
+**Functional Requirements (98 FRs):**
+All functional requirements have explicit architectural support through the documented controllers, services, and integration points. The FR-to-directory mapping ensures no requirements are orphaned.
+
+**Non-Functional Requirements (53 NFRs):**
+- Performance: Redis caching + eager loading addresses NFR1-8
+- Security: JWT + RBAC + rate limiting addresses NFR9-20
+- Scalability: Horizontal scaling patterns address NFR21-26
+- Reliability: Queue retries + atomic transactions address NFR27-34
+- Accessibility: Blade template patterns address NFR35-40
+- Integration: Service wrappers with retry address NFR41-47
+- Maintainability: Coding standards + testing address NFR48-53
+
+### Implementation Readiness Validation ✅
+
+**Decision Completeness:**
+All critical decisions are documented with:
+- Specific versions and packages
+- Implementation patterns with code examples
+- Configuration snippets for core systems
+
+**Structure Completeness:**
+Complete directory structure with:
+- All controller namespaces defined
+- Service extraction targets identified
+- Test organization specified
+
+**Pattern Completeness:**
+All potential conflict points addressed:
+- 12 naming convention categories defined
+- Response format standardized
+- Event/job patterns specified
+- Anti-patterns documented
+
+### Architecture Completeness Checklist
+
+**✅ Requirements Analysis**
+- [x] Project context thoroughly analyzed (98 FRs, 53 NFRs)
+- [x] Scale and complexity assessed (high - multi-vendor, subscriptions)
+- [x] Technical constraints identified (Laravel 9.x+ brownfield)
+- [x] Cross-cutting concerns mapped (8 concerns)
+
+**✅ Architectural Decisions**
+- [x] Critical decisions documented with versions
+- [x] Technology stack fully specified
+- [x] Integration patterns defined (Stripe, Firebase, S3)
+- [x] Performance considerations addressed (caching, queues)
+
+**✅ Implementation Patterns**
+- [x] Naming conventions established (database, API, code)
+- [x] Structure patterns defined (directory layout)
+- [x] Communication patterns specified (events, jobs)
+- [x] Process patterns documented (transactions, validation)
+
+**✅ Project Structure**
+- [x] Complete directory structure defined
+- [x] Component boundaries established
+- [x] Integration points mapped
+- [x] Requirements to structure mapping complete
+
+### Architecture Readiness Assessment
+
+**Overall Status:** READY FOR IMPLEMENTATION
+
+**Confidence Level:** High
+
+**Key Strengths:**
+- Leverages proven Laravel 9.x+ brownfield foundation
+- Clear service extraction path from CentralLogics
+- Comprehensive pattern documentation for AI agent consistency
+- Complete FR/NFR coverage verified
+
+**Areas for Future Enhancement:**
+- WebSocket real-time updates (Phase 2)
+- Event sourcing for analytics (Phase 3)
+- Multi-region deployment (Phase 3)
+
+### Implementation Handoff
+
+**AI Agent Guidelines:**
+- Follow all architectural decisions exactly as documented
+- Use implementation patterns consistently across all components
+- Respect project structure and boundaries
+- Refer to this document for all architectural questions
+- NEVER add new code to CentralLogics (legacy)
+
+**First Implementation Priority:**
+1. Install Laravel Horizon for queue visibility
+2. Add Redis configuration (cache, session, queue)
+3. Create base API Resource classes
+4. Extract first service (OrderStatusService)
+
